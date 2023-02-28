@@ -96,6 +96,48 @@ plt.rcParams.update({
     "font.sans-serif": ["Helvetica"]})
 plt.rcParams['font.size'] = 12
 
+
+
+
+
+class PyQSpecFit():
+	def __init__(self, lams, flux, eflux):
+		"""
+		Get input data
+
+		Parameters:
+		-----------
+		lams: 1-D array
+			wavelength in unit of Angstrom in rest-frame
+ 
+		flux: 1-D array
+			flux density in unit of erg/s/cm^2/Angstrom
+
+		eflux: 1-D array
+			 1 sigma err with the same unit of flux
+
+		"""
+
+		self.inputLam = lams
+		self.inputFlux = flux
+		self.inputFluxError = eflux
+		self.data = np.array([lams, flux, eflux])
+	
+	def runFit(self, dataDir, lineFile, N_fits=1, contiWindow, lineWindow,
+			   normSwitch=True, dataOut=True,
+			   sig_clip=False, clipSigma=3, clipBoxWidth=50, clipBufferWidth=3,
+			   lineShift=0, allowedShift=30,
+			   useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0):
+		
+		pass
+
+
+
+
+
+
+
+
 ####################
 # Useful Functions #
 ####################
@@ -260,19 +302,9 @@ def eval_conti_all(p, xx):
 	# General Line Fitting #
 	########################	
 def eval_line_full(p, xx):
-	if fit_type == 'PL':
-		# p = [low index, high index, Norm, Central Wavelength]
-		xx = np.array(xx)
-		xlo = xx[np.logical_and(xx < p[3], True)]
-		xhi = xx[np.logical_and(xx >= p[3], True)]
-		flo = p[2] * (xlo/p[3])**(p[0])
-		fhi = p[2] * (xhi/p[3])**(p[1])
-		f_line = np.append(flo, fhi)
-		return f_line
-	elif fit_type == 'SN':
-		# p = [Skew, Scale FWHM (km/s), Norm, Central Wavelength]
-		scale_AA = fwhm_to_angstrom(p[1], p[3])
-		return p[2]* skewnorm.pdf(xx, p[0], p[3], scale_AA)
+	# p = [Skew, Scale FWHM (km/s), Norm, Central Wavelength]
+	scale_AA = fwhm_to_angstrom(p[1], p[3])
+	return p[2]* skewnorm.pdf(xx, p[0], p[3], scale_AA)
 		
 def residual_line(p, data):
     # Data should be residual spectra
@@ -288,17 +320,6 @@ def fwhm_to_angstrom(fwhm, line_center):
 	angstrom = fwhm/con.c * 1000. * line_center
 	return angstrom
 
-	
-def plot_lines(plot, plot_text):
-	global line_names
-	global line_wave
-	orig_ylim = plot.get_ylim()
-	plot.set_ylim(orig_ylim)
-	for name, wav in zip(line_names, line_wave):
-		plot.plot([wav for x in orig_ylim], orig_ylim, '--', c='gainsboro', alpha=0.9, zorder=1)
-		if plot_text:
-			plot.text(wav, orig_ylim[1] + 0.02*(orig_ylim[1]-orig_ylim[0]), name, fontsize=8, ha='center', rotation = 90)
-	return
 	
 def eval_all_lines(p, xx, plot, inset):
 	# Mainly depends on eval_line_full
@@ -423,7 +444,6 @@ normalization_switch = True
 lines_path = 'Lines/Lines_MgII.csv'
 
 # Fit region and type #
-fit_type = 'SN' # PL or SN
 N_fits = 1
 sig_clip = False
 fit_synthetic = False
@@ -484,38 +504,6 @@ line_fit_MgII = [[2750., 2850.]]
 
 line_fit_windows = line_fit_MgII
 line_data_out = True # Write Data to file
-
-
-# Plotting #
-plot_line_fit = True
-#plot_xlo, plot_xhi = 1180, 2000 # Lya, CIII
-#plot_xlo, plot_xhi = 1820, 4000 # CIII, MgII
-plot_xlo, plot_xhi = 1300, 1800 # NIV, CIV
-#plot_xlo, plot_xhi = 1700, 2400 # CIII
-plot_xlo, plot_xhi = 2500, 3100 # MgII
-#plot_xlo, plot_xhi = 2200, 3500
-#plot_xlo, plot_xhi = 1800, 10000 # J1144 conti
-#plot_xlo, plot_xhi = 4500, 7000 # Halpha, Hbeta
-#plot_xlo, plot_xhi = 4500, 5100 # Hbeta
-#plot_xlo, plot_xhi = 4500, 4950 # Hbeta
-#plot_xlo, plot_xhi = 11500, 13500 # PaBeta
-#plot_xlo, plot_xhi = 1200, 5200 # conti
-
-#inset_xlo, inset_xhi = 1215, 1255 # Lya, NV
-#inset_xlo, inset_xhi = 1450, 1600 # NIV, CIV
-inset_xlo, inset_xhi = 1350, 1700 # NIV, CIV
-#inset_xlo, inset_xhi = 1480, 1620 # NIV, CIV
-#inset_xlo, inset_xhi = 1800, 1970 # AlIII, SiIII, CIII
-inset_xlo, inset_xhi = 2700, 2900 # MgII
-#inset_xlo, inset_xhi = 4600, 5150 # Hbeta
-#inset_xlo, inset_xhi = 4600, 4950 # Hbeta
-#inset_xlo, inset_xhi = 6400, 6700 # Halpha
-#inset_xlo, inset_xhi = 12300, 13300 # PaBeta
-
-plot_mask_windows = True
-mask_windows = [[1368, 1371], [1391, 1394]]
-mask_windows = used_conti_windows
-
 
 
 
@@ -615,31 +603,17 @@ for i in range(N_fits):
 		fwhm_lows = pdata_lines['FWHM_low']
 		fwhm_highs = pdata_lines['FWHM_high']
 
-		if fit_type == 'PL':
-			# Power-Law Fitting
-			init_params = []
-			init_parinfo = []
-			line_header = ['low_index', 'high_index', 'Norm', 'Wavelength']
+		# SkewNorm Fitting
+		init_params = []
+		init_parinfo = []
+		line_header = ['Skew', 'FWHM', 'Norm', 'Wavelength']
 
-			for index, line in enumerate(line_names):
-				# Line Parameters: low_index, high_index, Norm, Central Wavelength
-				line_init_params = [0., 0., line_norms[index], line_wave[index]+line_shift]
-				line_parinfo = [{'limits': (0, 1E5)}, {'limits': (-1E5, 0)}, {'limits': (0.0, 1E5)}, {'limits': (line_wave[index]-allowed_shift, line_wave[index]+allowed_shift)}]
-				init_params += line_init_params
-				init_parinfo += line_parinfo
-
-		elif fit_type == 'SN':
-			# SkewNorm Fitting
-			init_params = []
-			init_parinfo = []
-			line_header = ['Skew', 'FWHM', 'Norm', 'Wavelength']
-
-			for index, line in enumerate(line_names):
-				# Line Parameters: Skew, Scale, Norm, Central Wavelength
-				line_init_params = [0., fwhm_lows[index], line_norms[index], line_wave[index]+line_shift]
-				line_parinfo = [{'fixed': True}, {'limits': (fwhm_lows[index], fwhm_highs[index])}, {'limits': (0., 1E2)}, {'limits': (line_wave[index]+line_shift-allowed_shift, line_wave[index]+line_shift+allowed_shift)}]
-				init_params += line_init_params
-				init_parinfo += line_parinfo
+		for index, line in enumerate(line_names):
+			# Line Parameters: Skew, Scale, Norm, Central Wavelength
+			line_init_params = [0., fwhm_lows[index], line_norms[index], line_wave[index]+line_shift]
+			line_parinfo = [{'fixed': True}, {'limits': (fwhm_lows[index], fwhm_highs[index])}, {'limits': (0., 1E2)}, {'limits': (line_wave[index]+line_shift-allowed_shift, line_wave[index]+line_shift+allowed_shift)}]
+			init_params += line_init_params
+			init_parinfo += line_parinfo
 
 		xx, yy, e_yy = lams, residual_flux, eflux
 
@@ -664,104 +638,6 @@ for i in range(N_fits):
 		out_line_res(line_bestfit, line_stderrs, line_names)
 
 
-		if plot_line_fit:
-			# Set Fig Parameters #
-			fig, (ax, ax2) = plt.subplots(nrows=2, sharex=True, gridspec_kw={'height_ratios': [4, 1]})
-			fig.subplots_adjust(hspace=0)
-
-			ax_inset = inset_axes(ax, width="50%", height="40%")
-			ax_inset.set_xlim([inset_xlo, inset_xhi])	
-
-			# Evaluate Continuum and Line Flux #
-			PL_flux = eval_PL(conti_bestfit, lams)
-			conti_flux = eval_conti_all(conti_bestfit, lams)
-
-
-			line_flux = eval_all_lines(line_bestfit, lams, ax, ax_inset)
-
-			flux = flux
-			eflux = eflux
-
-			spec = Spectrum1D(spectral_axis = lams*u.angstrom, flux = flux*u.Jy)
-			spec_msmooth = median_smooth(spec, width=1)
-			ax.step(spec_msmooth.spectral_axis, spec_msmooth.flux, 'k')
-			ax_inset.step(spec_msmooth.spectral_axis, spec_msmooth.flux.value-conti_flux, 'k')
-
-			#ax.plot(lams, line_flux, 'b')
-			ax.plot(lams, line_flux+conti_flux, 'b')
-			#ax.step(lams, eflux, 'gainsboro')
-
-			ax.plot(lams, PL_flux, c='orange', label='PL Continuum')
-			#ax.plot(lams, conti_flux, c='g', label='Full Continuum')
-			ax.plot(ax.get_xlim(), [0, 0], c='orange')
-			ax_inset.plot(lams, line_flux, 'b')
-			ax_inset.plot(lams, conti_flux - conti_flux, c='orange')
-
-			#all_resid = flux/(line_flux + conti_flux)
-			all_resid = (flux - (line_flux+conti_flux))/eflux
-			all_spec_resid = Spectrum1D(spectral_axis = lams*u.angstrom, flux = all_resid*u.Jy)
-			all_resid_msmooth = median_smooth(all_spec_resid, width=5)
-
-			#ax2.plot([plot_xlo, plot_xhi], [1.0, 1.0], c='k', alpha=0.5)
-			ax2.plot([plot_xlo, plot_xhi], [0.0, 0.0], c='k', alpha=0.5)
-			ax2.plot(all_resid_msmooth.spectral_axis, all_resid_msmooth.flux, c='b')
-			#ax2.set_ylim(0.8, 1.4)
-			ax2.set_ylim(-2.9, 2.9)
-
-			if plot_mask_windows: # plot manual tweak mask
-				for mask_window in mask_windows:
-					ax.axvspan(mask_window[0], mask_window[1], fc='b', alpha=0.5)
-					ax2.axvspan(mask_window[0], mask_window[1], fc='b', alpha=0.5)
-					ax_inset.axvspan(mask_window[0], mask_window[1], fc='b', alpha=0.5)
-
-
-			for x in line_fit_windows:
-				window_mask = [False for x in all_resid_msmooth.spectral_axis]
-				window_mask2 = [False for x in lams]
-				for index, lam in enumerate(all_resid_msmooth.spectral_axis):
-					if lam.value > x[0] and lam.value < x[1]:
-						window_mask[index] = True
-				for index, lam in enumerate(lams):
-					if lam > x[0] and lam < x[1]:
-						window_mask2[index] = True
-				ax.plot(lams[window_mask2], (line_flux+conti_flux)[window_mask2], c='r')
-				ax_inset.plot(lams[window_mask2], (line_flux)[window_mask2], c='r')
-				#ax.plot(lams[window_mask2], line_flux[window_mask2], c='r')
-				ax2.plot(all_resid_msmooth.spectral_axis[window_mask], all_resid_msmooth.flux[window_mask], c='r')
-
-			ax.set_xlim(plot_xlo, plot_xhi)
-			main_plot_ylim = np.array(ax.get_ylim())
-			main_plot_ylim[0] = -0.1
-			#main_plot_ylim[1] = 1.1*np.nanmax(np.array(spec_msmooth.flux)[np.logical_and(lams>plot_xlo, lams<plot_xhi)])
-			main_plot_ylim[1] = 2.5*np.nanmax(np.array(spec_msmooth.flux)[np.logical_and(lams>plot_xlo, lams<plot_xhi)])
-			ax.set_ylim(main_plot_ylim[0], main_plot_ylim[1])
-
-			inset_ylim = np.array(ax_inset.get_ylim())
-			inset_ylim[1] = 1.1*np.nanmax(np.array(spec_msmooth.flux.value-conti_flux)[np.logical_and(lams>inset_xlo, lams<inset_xhi)])
-			ax_inset.set_ylim(-0.1*inset_ylim[1], inset_ylim[1])
-
-			plot_lines(ax, True)
-			plot_lines(ax2, False)
-
-			ax2.set_xlabel(r'$\rm Rest \, Wavelength$ $\lambda$ ($\rm \AA$)')
-			ax.set_ylabel(r'Relative $F_{\rm{\lambda}}$')
-			ax2.set_ylabel(r'$F_{\rm{\lambda}}/F_{\rm{\lambda,mod}}$', fontsize = 10)
-
-			ax.tick_params(axis='both', direction='in', bottom=False, top=True, right=True)
-			ax2.tick_params(axis='both', direction='in', top=False, right=True)
-			ax_inset.tick_params(axis='both', direction='in', top=True, right=True)
-
-			ax2.xaxis.set_minor_locator(AutoMinorLocator())
-			ax2.tick_params(axis='x', which='both', direction='in')
-			ax_inset.xaxis.set_minor_locator(AutoMinorLocator())
-			ax_inset.tick_params(axis='x', which='both', direction='in')
-
-
-			out_figname = 'Fit_Figs/' + datafile[:-4]+'.png'
-			plt.savefig(out_figname, dpi=200, bbox_inches='tight', facecolor='white', transparent=False)
-			#plt.show()
-			plt.close('all')
-			plt.clf()
 
 
 

@@ -65,6 +65,11 @@ from specutils.analysis import fwhm as specutils_fwhm
 from uncertainties import ufloat
 from uncertainties.umath import *
 
+# Plotting
+import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter, MultipleLocator, AutoMinorLocator
+
+
 
 class PyQSpecFit():
 	def __init__(self, dataDir='data/'):
@@ -333,11 +338,124 @@ class PyQSpecFit():
 		pdata.to_csv(outDir+'example.csv', index=False)
 	
 	
-	def plotLineFits(self, lineFile, dataFile, fitFile,
-					 lamWindow=[1200, 8000], lineCompInd = 0,
+	def plotLineFits(self, data_ax, resid_ax, lineFile, dataFile, fitFile, redshift,
+					 plotWindow=[1200, 8000], dataInd = 0,
 					 useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0,
 					 outDir='Fit_Figs/'):
-		pass
+		self.useBalmer = useBalmer
+		self.useFe = useFe
+		self.Fe_uv_ind = Fe_uv_ind
+		self.Fe_opt_ind = Fe_opt_ind
+		atm_file = 'atm_file/14k_R2k_1_5_micron.txt'
+		atm_data = np.genfromtxt(atm_file)
+		atm_lams, atm_trans = atm_data[:,0]*10**4/(1+redshift), atm_data[:,1]
+		
+		norm_fac = 1E17
+		pdata = pd.read_csv(dataFile)
+		lams = pdata['Wavelength'].to_numpy()
+		data_flux = pdata['Flux'].to_numpy()*norm_fac
+		data_eflux = pdata['eFlux'].to_numpy()*norm_fac
+	
+		pdata = pd.read_csv(fitFile)
+		atm_lams_plot = atm_lams[np.logical_and(atm_lams>plotWindow[0], atm_lams<plotWindow[1])]
+		atm_trans_plot = atm_trans[np.logical_and(atm_lams>plotWindow[0], atm_lams<plotWindow[1])]
+		atm_lams_plot = atm_lams_plot[np.where(atm_trans_plot < 0.38)]
+		atm_trans_plot = atm_trans_plot[np.where(atm_trans_plot < 0.38)]
+	
+		line_list_pdata = pd.read_csv(lineFile)
+		N_gauss = len(line_list_pdata['Name'])
+	
+		rescale = pdata['Norm_Factor'].to_numpy().reshape(int(len(pdata['Norm_Factor'].to_numpy())/N_gauss), N_gauss)[dataInd]*norm_fac
+		conti_header = ['PL_Norm', 'PL_Slope', 'Fe_UV_Norm', 'Fe_UV_FWHM', 'Fe_UV_del', 
+						'Fe_Opt_Norm', 'Fe_Opt_FWHM', 'Fe_Opt_del', 'Balmer_norm', 'Balmer_Te', 'Balmer_tau']
+		contips = np.transpose([pdata[i].to_numpy().reshape(int(len(pdata[i].to_numpy())/N_gauss), N_gauss) for i in conti_header])[0][dataInd]
+		line_norms = pdata['Norm'].to_numpy().reshape(int(len(pdata['Norm'].to_numpy())/N_gauss), N_gauss)[dataInd]
+		line_wavs = pdata['Wavelength'].to_numpy().reshape(int(len(pdata['Wavelength'].to_numpy())/N_gauss), N_gauss)[dataInd]
+		line_FWHM = pdata['FWHM'].to_numpy().reshape(int(len(pdata['FWHM'].to_numpy())/N_gauss), N_gauss)[dataInd]
+	
+		line_profiles = []
+		conti_profile = self.eval_conti_all(contips, lams)*rescale[0]
+		PL_profile = self.eval_PL(contips, lams)*rescale[0]
+	
+		for line_index, (norm, wav, fwhm, rescale_fac) in enumerate(zip(line_norms, line_wavs, line_FWHM, rescale)):
+			temp_line = self.eval_line_full([0, fwhm, norm, wav], lams)*rescale_fac
+		
+			if norm == 0:
+				continue
+			current_inset_window = np.clip(lams[np.where(temp_line > 0.01*np.nanmax(temp_line))], plotWindow[0], plotWindow[1])
+			current_inset_window = np.array([np.nanmin(current_inset_window), np.nanmax(current_inset_window)])
+			data_ax.plot(lams[np.logical_and(lams>current_inset_window[0], lams<current_inset_window[1])], 
+									 (conti_profile+temp_line)[np.logical_and(lams>current_inset_window[0], lams<current_inset_window[1])],
+									 '--', c = 'r')
+
+			line_profiles.append(temp_line)
+
+		tot_line = np.array([0 for i in lams])
+		for profile in line_profiles:
+			tot_line = self.sum_nan_arrays(tot_line, profile)
+
+		current_inset_window = np.clip(lams[np.where(tot_line > 0.01*np.nanmax(tot_line))], plotWindow[0], plotWindow[1])
+		current_inset_window = np.array([np.nanmin(current_inset_window), np.nanmax(current_inset_window)])
+
+		data_ax.tick_params(which='both',axis='both', direction='in', bottom=True, top=True, right=True, labelleft=True, labelbottom=False)
+		data_ax.plot(lams[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])], 
+							 data_flux[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])],
+							 c = 'k', label='Data', zorder=0)
+		data_ax.set_ylim(np.clip(data_ax.get_ylim(), 0.25*np.min(((conti_profile+tot_line)[tot_line > 0.01])), 1.5*np.max((conti_profile+tot_line)[tot_line > 0.01])))
+
+		data_ax.plot(lams[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])], 
+							 PL_profile[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])],
+							 c = 'orange', label='Power-law')
+		data_ax.plot(lams[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])], 
+							 conti_profile[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])],
+							 c = 'b', label='Pseudo-Continuum')
+
+		data_ax.plot(lams[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])], 
+							 (conti_profile+tot_line)[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])],
+							 c = 'b')
+		data_ax.plot(lams[tot_line > 0.01][np.logical_and(lams[tot_line > 0.01]>plotWindow[0], lams[tot_line > 0.01]<plotWindow[1])],
+							 (conti_profile+tot_line)[tot_line > 0.01][np.logical_and(lams[tot_line > 0.01]>plotWindow[0], lams[tot_line > 0.01]<plotWindow[1])],
+							 c = 'r')
+		data_ax.plot(lams[np.logical_and(lams>current_inset_window[0], lams<current_inset_window[1])], 
+							 (conti_profile+tot_line)[np.logical_and(lams>current_inset_window[0], lams<current_inset_window[1])],
+							 c = 'r', label='Line')
+		e_vscale = data_ax.get_ylim()[0]
+		data_ax.plot(lams[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])], 
+							 e_vscale+data_eflux[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])],
+							 c = 'gainsboro', zorder=-1)
+						 
+		data_ax.yaxis.set_minor_locator(AutoMinorLocator())
+		data_ax.xaxis.set_minor_locator(AutoMinorLocator())
+	
+		resid_ax.tick_params(which='both', axis='both', direction='in', bottom=True, top=True, right=True, labelleft=True)
+		resid_ax.plot(lams[np.logical_and(lams>current_inset_window[0], lams<current_inset_window[1])], 
+								 ((data_flux-conti_profile-tot_line)/data_eflux)[np.logical_and(lams>current_inset_window[0], lams<current_inset_window[1])],
+								  c = 'r', zorder=3)
+		resid_scale = 1.2*np.max(np.abs(resid_ax.get_ylim()))
+		resid_ax.set_ylim([-resid_scale, resid_scale])
+		resid_ax.plot(lams[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])], 
+							 ((data_flux-conti_profile-tot_line)/data_eflux)[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])])
+	
+		resid_ax.plot(lams[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])],
+							  [0 for i in lams[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])]], 
+							  c = 'k', zorder=4)
+		resid_ax.set_ylim(np.clip(resid_ax.get_ylim(), -15, 15))
+		resid_ax.plot(atm_lams_plot, [0.93*(resid_ax.get_ylim()[1]-resid_ax.get_ylim()[0])+resid_ax.get_ylim()[0] for i in atm_lams_plot], 
+							 'o', c='grey', alpha=0.7, zorder=2)
+	
+
+		resid_ax.plot(plotWindow, [-3.0, -3.0], '--', c='k', zorder=4)
+		resid_ax.plot(plotWindow, [3.0, 3.0], '--', c='k', zorder=4)
+		resid_ax.xaxis.set_minor_locator(AutoMinorLocator())
+		resid_ax.yaxis.set_minor_locator(AutoMinorLocator())
+	
+		data_ax.tick_params(labelleft=True)
+		data_ax.legend(facecolor='white', framealpha=1.0, loc=2, fontsize=12)
+		data_ax.set_ylabel(r'$\rm f_{\lambda, \rm{obs}}$ ($10^{-17} \rm erg\;s^{-1}\;cm^{-2}\;\AA^{-1}$)')
+
+		resid_ax.tick_params(labelleft=True)
+		resid_ax.set_ylabel('Residual ($\\sigma$)')
+		resid_ax.set_xlabel('Rest Wavelength $(\\rm{\\AA})$')
 
 
 	###########

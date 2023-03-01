@@ -8,7 +8,7 @@
 ###################
 # Version History #
 ###################
-# V1.0 - Forked from PyQSpecFit_Functional_v2
+# V1.0 - Forked from PyQSpecFit_Functional_v2, basic functionality established
 # 	
 #
 #

@@ -16,7 +16,7 @@
 #########
 # To Do #
 #########
-# Plotting 
+# Cleanup 
 #
 
 
@@ -346,6 +346,14 @@ class PyQSpecFit():
 		self.useFe = useFe
 		self.Fe_uv_ind = Fe_uv_ind
 		self.Fe_opt_ind = Fe_opt_ind
+		
+		
+		plt.rcParams.update({
+			"font.family": "sans-serif",
+			"font.sans-serif": ["Helvetica"]})
+		plt.rcParams['font.size'] = 16
+		
+		
 		atm_file = 'atm_file/14k_R2k_1_5_micron.txt'
 		atm_data = np.genfromtxt(atm_file)
 		atm_lams, atm_trans = atm_data[:,0]*10**4/(1+redshift), atm_data[:,1]
@@ -446,6 +454,8 @@ class PyQSpecFit():
 
 		resid_ax.plot(plotWindow, [-3.0, -3.0], '--', c='k', zorder=4)
 		resid_ax.plot(plotWindow, [3.0, 3.0], '--', c='k', zorder=4)
+		if np.max(np.abs(resid_ax.get_ylim())) < 5:
+			resid_ax.set_ylim(-5,5)
 		resid_ax.xaxis.set_minor_locator(AutoMinorLocator())
 		resid_ax.yaxis.set_minor_locator(AutoMinorLocator())
 	

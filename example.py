@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 ############
 
 # Continuum Fitting Windows #
-MgII_XQ100_windows = np.array([[2200., 2740.], [2840., 3300.], [3500., 3650.]]) # Default
+conti_windows = np.array([[1973., 1983.], [2060., 2340.], [2600., 2740.], [2840., 3100.]])
 
 # Filepath with Lines Definition #
 line_path = 'Lines/Lines_MgII.csv'
@@ -21,10 +21,12 @@ line_fit_MgII = [[2750., 2850.]]
 
 
 example = PyQSpecFit.PyQSpecFit()
-#example.runFit(line_path, MgII_XQ100_windows, line_fit_MgII, N_fits = 10, syntheticFits=True, useFe=True)
+#example.runFit(line_path, conti_windows, line_fit_MgII, N_fits = 10, syntheticFits=True, useFe=True)
 #example.evalLineProperties(line_path, 'Line_Params/example.csv', 0.83, useFe=True)
 
-fig, axs = plt.subplots(2,1, figsize=(10, 8))
+
+fig, axs = plt.subplots(2,1, figsize=(8, 6), gridspec_kw=dict(height_ratios=[3,1], width_ratios=[1]))
+plt.subplots_adjust(wspace= 0.30, hspace= 0.00)
 example.plotLineFits(axs[0], axs[1], line_path, 'data/example.csv', 'Line_Params/example.csv', 0.83, plotWindow=[2500, 3100], useFe=True)
 plt.show()
 

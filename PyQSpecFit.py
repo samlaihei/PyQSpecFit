@@ -239,7 +239,7 @@ class PyQSpecFit():
 
 
 
-	def evalLineProperties(self, lineFile, dataFile, redshift, monoLumAngstrom = 3000.,
+	def evalLineProperties(self, lineFile, fitFile, redshift, monoLumAngstrom = 3000.,
 						   lamWindow=[1200, 8000], lineCompInd = 0,
 						   useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0,
 						   outDir='Line_Properties/'):
@@ -278,7 +278,7 @@ class PyQSpecFit():
 		temp_res_props_err = [[] for i in res_props_header]
 		lams = np.linspace(lamWindow[0], lamWindow[1], int(np.ptp(lamWindow)*5.))
 	
-		pdata = pd.read_csv(dataFile)
+		pdata = pd.read_csv(fitFile)
 		
 		N_gauss = total_line_shape
 	
@@ -332,6 +332,12 @@ class PyQSpecFit():
 			pdata['e'+val] = [res_props_err[ind]]
 		pdata.to_csv(outDir+'example.csv', index=False)
 	
+	
+	def plotLineFits(self, lineFile, dataFile, fitFile,
+					 lamWindow=[1200, 8000], lineCompInd = 0,
+					 useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0,
+					 outDir='Fit_Figs/'):
+		pass
 
 
 	###########

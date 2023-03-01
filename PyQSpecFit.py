@@ -16,7 +16,7 @@
 #########
 # To Do #
 #########
-# Plotting and line properties evaluation
+# Plotting 
 #
 
 
@@ -239,8 +239,8 @@ class PyQSpecFit():
 
 
 
-	def evalLineProperties(self, lineFile, dataFile, redshift, 
-						   lamWindow=[1200, 6000], lineCompInd = 0,
+	def evalLineProperties(self, lineFile, dataFile, redshift, monoLumAngstrom = 3000.,
+						   lamWindow=[1200, 8000], lineCompInd = 0,
 						   useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0):
 		self.useBalmer = useBalmer
 		self.useFe = useFe
@@ -274,7 +274,7 @@ class PyQSpecFit():
 	
 		temp_res_props = [[] for i in res_props_header]
 		temp_res_props_err = [[] for i in res_props_header]
-		lams = np.linspace(lamWindow[0], lamWindow[1], 10000)
+		lams = np.linspace(lamWindow[0], lamWindow[1], int(np.ptp(lamWindow)*5.))
 	
 		pdata = pd.read_csv(dataFile)
 		
@@ -294,7 +294,7 @@ class PyQSpecFit():
 			line_profiles = []
 			conti_profile = self.eval_conti_all(contip, lams)*rescale_facs[0]
 			PL_profile = self.eval_PL(contip, lams)*rescale_facs[0]
-			lum = self.eval_PL(contip, [3000])*rescale_facs[0]*4*np.pi * dl.value**2 * 3000. * (1+redshift)
+			lum = self.eval_PL(contip, [monoLumAngstrom])*rescale_facs[0]*4*np.pi * dl.value**2 * monoLumAngstrom * (1+redshift)
 		
 			norms = norms[line_index]
 			wavs = wavs[line_index]

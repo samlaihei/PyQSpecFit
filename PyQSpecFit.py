@@ -253,6 +253,7 @@ class PyQSpecFit():
 		self.useFe = useFe
 		self.Fe_uv_ind = Fe_uv_ind
 		self.Fe_opt_ind = Fe_opt_ind
+		outName = fitFile.split('/')[-1][:-4]
 		res_props_header = ['FWHM', 'Sigma', 'Blueshift', 'EW', 'pWave', 'iLum', 'Mono_Lum']
 
 		self.cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
@@ -335,7 +336,7 @@ class PyQSpecFit():
 		for ind, val in enumerate(res_props_header):
 			pdata[val] = [res_props[ind]]
 			pdata['e'+val] = [res_props_err[ind]]
-		pdata.to_csv(outDir+'example.csv', index=False)
+		pdata.to_csv(outDir+outName+'.csv', index=False)
 	
 	
 	def plotLineFits(self, data_ax, resid_ax, lineFile, dataFile, fitFile, redshift,

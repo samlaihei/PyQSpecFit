@@ -16,7 +16,7 @@
 #########
 # To Do #
 #########
-# Clean
+# Plotting and line properties evaluation
 #
 
 
@@ -32,93 +32,49 @@
 ###################
 # Import Packages #
 ###################
-import glob, os,sys,timeit
-sys.path.append('../')
-import warnings
+import glob
 import os
-from os import path
 #from colossus.cosmology import cosmology
 
 # Numpy and Pandas and I/O
 import numpy as np
 import pandas as pd
-from numpy.random import Generator, MT19937
 import numpy.random as rand
-import random
 import csv
 
 # Astropy
-from astropy.cosmology import FlatLambdaCDM, LambdaCDM
-from astropy.io import fits
-from astropy.modeling import models, fitting
-from astropy.nddata import StdDevUncertainty
-from astropy.table import Table
+from astropy.cosmology import FlatLambdaCDM
 import astropy.units as u
 from kapteyn import kmpfit
-import math
 from astropy.modeling.physical_models import BlackBody
 from astropy.stats import sigma_clip
 
-# Plotting 
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib import rc
-import matplotlib.patches as patches
-from matplotlib.ticker import ScalarFormatter, MultipleLocator, AutoMinorLocator
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
-
 # Scipy
-from scipy.ndimage import gaussian_filter1d, gaussian_filter
-from scipy.interpolate import UnivariateSpline
-from scipy.optimize import curve_fit
 from scipy.stats import norm, skewnorm
 from scipy import interpolate
 import scipy.constants as con
-from scipy.integrate import simps
 
 
 # Specutils
 from specutils import Spectrum1D
-from specutils.analysis import line_flux, equivalent_width
-from specutils.fitting import estimate_line_parameters, fit_lines
-from specutils.manipulation import (extract_region, box_smooth, gaussian_smooth, trapezoid_smooth, median_smooth)
-from specutils.manipulation import FluxConservingResampler, LinearInterpolatedResampler, SplineInterpolatedResampler
-from specutils.spectra import SpectralRegion
-from specutils.analysis import fwhm as specutils_fwhm
 
 # Uncertainty
 from uncertainties import ufloat
 from uncertainties.umath import *
 
-plt.rcParams.update({
-    "font.family": "sans-serif",
-    "font.sans-serif": ["Helvetica"]})
-plt.rcParams['font.size'] = 12
-
-
 
 class PyQSpecFit():
-	def __init__(self, lams=[], flux=[], eflux=[], dataDir='data/'):
+	def __init__(self, dataDir='data/'):
 		"""
 		Get input data
 
 		Parameters:
 		-----------
-		lams: 1-D array
-			wavelength in unit of Angstrom in rest-frame
- 
-		flux: 1-D array
-			flux density in arbitrary units, models will follow units
-
-		eflux: 1-D array
-			 1 sigma err with the same unit of flux
-
+		dataDir: string
+			points to location of csv datafiles setup with columns ['Wavelength', 'Flux', 'eFlux']
+			line models will follow units of the Flux column
 		"""
-
-		self.lams = lams
-		self.flux = flux
-		self.eflux = eflux
+		
 		self.dataDir = dataDir
 		
 		template_path = 'Fe_Templates/'
@@ -275,7 +231,7 @@ class PyQSpecFit():
 					line_bestfit = fitobj.params
 					line_stderrs = fitobj.stderr
 
-					self.out_line_res(line_bestfit, line_stderrs, line_names)
+					self.out_line_res(lams, line_bestfit, line_stderrs, line_names)
 
 		
 		
@@ -474,7 +430,7 @@ class PyQSpecFit():
 			line_result += np.array(line_res)
 		return line_result
 
-	def out_line_res(self, p, ep, line_names):
+	def out_line_res(self, lams, p, ep, line_names):
 		num_line_params = len(self.line_header)
 		num_lines = int(len(p)/num_line_params)
 		print('Formatted Line Parameters:')
@@ -483,7 +439,7 @@ class PyQSpecFit():
 			current_line_params = np.array(p[int(num_line_params*i):int(num_line_params*(i+1))])
 			eval_params = current_line_params
 	
-			current_line_yy = self.eval_line_full(eval_params, self.lams)
+			current_line_yy = self.eval_line_full(eval_params, lams)
 	
 			print(line_names[i], '\t', current_line_params)
 
@@ -493,6 +449,13 @@ class PyQSpecFit():
 				data_row = [self.datafile, line_names[i]]+ [self.norm_median] + list(current_line_params) + list(self.conti_bestfit)
 				out_header = ['Filename', 'Name', 'Norm_Factor'] + list(self.line_header) + list(self.conti_header)
 				self.write_to_file(dataout_filename, out_header, data_row)
+
+
+
+
+
+
+
 
 
 

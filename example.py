@@ -12,11 +12,11 @@ import numpy as np
 # Continuum Fitting Windows #
 MgII_XQ100_windows = np.array([[2200., 2740.], [2840., 3300.], [3500., 3650.]]) # Default
 
-
-# Filepath with Lines #
+# Filepath with Lines Definition #
 lines_path = 'Lines/Lines_MgII.csv'
-line_fit_MgII = [[2750., 2850.]]
 
+# Line Fitting Windows #
+line_fit_MgII = [[2750., 2850.]]
 
 
 example = PyQSpecFit.PyQSpecFit()

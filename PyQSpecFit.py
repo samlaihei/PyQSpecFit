@@ -241,7 +241,9 @@ class PyQSpecFit():
 
 	def evalLineProperties(self, lineFile, dataFile, redshift, monoLumAngstrom = 3000.,
 						   lamWindow=[1200, 8000], lineCompInd = 0,
-						   useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0):
+						   useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0,
+						   outDir='Line_Properties/'):
+		# Assumes flux is in units of erg/s/cm2/Angstrom #
 		self.useBalmer = useBalmer
 		self.useFe = useFe
 		self.Fe_uv_ind = Fe_uv_ind
@@ -250,7 +252,7 @@ class PyQSpecFit():
 
 		self.cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 		dl = self.cosmo.luminosity_distance(redshift).to(u.cm)
-	
+		
 		line_list_pdata = pd.read_csv(lineFile)
 		total_line_shape = len(line_list_pdata['Name'])
 
@@ -268,7 +270,7 @@ class PyQSpecFit():
 				if ind == len(line_list_pdata['Name'].to_numpy())-1:
 					line_indices.append(indices)
 
-		print(line_names, line_wavs)
+		#print(line_names, line_wavs)
 		vac_wav = line_wavs[lineCompInd]
 		line_index = line_indices[lineCompInd]
 	
@@ -294,6 +296,8 @@ class PyQSpecFit():
 			line_profiles = []
 			conti_profile = self.eval_conti_all(contip, lams)*rescale_facs[0]
 			PL_profile = self.eval_PL(contip, lams)*rescale_facs[0]
+			
+			# Assumes flux is in units of erg/s/cm2/Angstrom #
 			lum = self.eval_PL(contip, [monoLumAngstrom])*rescale_facs[0]*4*np.pi * dl.value**2 * monoLumAngstrom * (1+redshift)
 		
 			norms = norms[line_index]
@@ -320,7 +324,15 @@ class PyQSpecFit():
 		#res_props = [np.nanmean(sigma_clip(i, sigma=3, maxiters=5)) for i in temp_res_props]
 		#res_props_err = [np.std(sigma_clip(i, sigma=3, maxiters=5)) for i in temp_res_props]
 	
-		print(res_props, res_props_err)
+		#print(res_props, res_props_err)
+
+		pdata = pd.DataFrame()
+		for ind, val in enumerate(res_props_header):
+			pdata[val] = [res_props[ind]]
+			pdata['e'+val] = [res_props_err[ind]]
+		pdata.to_csv(outDir+'example.csv', index=False)
+	
+
 
 	###########
 	# Methods #

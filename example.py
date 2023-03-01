@@ -21,7 +21,7 @@ line_fit_MgII = [[2750., 2850.]]
 
 example = PyQSpecFit.PyQSpecFit()
 #example.runFit(line_path, MgII_XQ100_windows, line_fit_MgII, N_fits = 10, syntheticFits=True, useFe=True)
-example.evalLineProperties(line_path, 'Line_Params/example.csv', 4.0, useFe=True)
+example.evalLineProperties(line_path, 'Line_Params/example.csv', 0.83, useFe=True)
 
 
 

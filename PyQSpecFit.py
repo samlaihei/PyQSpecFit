@@ -1,5 +1,5 @@
 # PyQSpecFit: Code for modelling emission lines in QSO spectra
-# Auther: Samuel Lai, ANU
+# Author: Samuel Lai, ANU
 # Email: samuel.lai (AT) anu (DOT) edu (DOT) au
 
 # Version 1.0

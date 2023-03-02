@@ -23,10 +23,10 @@ line_fit_MgII = [[2750., 2850.]]
 example = PyQSpecFit.PyQSpecFit()
 
 # Perform fits #
-example.runFit(line_path, conti_windows, line_fit_MgII, N_fits = 10, syntheticFits=True, useFe=True)
+#example.runFit(line_path, conti_windows, line_fit_MgII, N_fits = 10, syntheticFits=True, useFe=True)
 
 # Evaluate line #
-#example.evalLineProperties(line_path, 'Line_Params/example.csv', 0.83, useFe=True)
+example.evalLineProperties(line_path, 'Line_Params/example.csv', 0.83, useFe=True)
 
 # Create plots #
 #fig, axs = plt.subplots(2,1, figsize=(8, 6), gridspec_kw=dict(height_ratios=[3,1], width_ratios=[1]), sharex=True)

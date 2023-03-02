@@ -273,10 +273,10 @@ class PyQSpecFit():
 				line_wavs.append(c_wav)
 			else:
 				indices.append(ind)
-				if ind == len(line_list_pdata['Name'].to_numpy())-1:
-					line_indices.append(indices)
+			if ind == len(line_list_pdata['Name'].to_numpy())-1:
+				line_indices.append(indices)
 
-		#print(line_names, line_wavs)
+		#print(line_names, line_wavs, line_indices)
 		vac_wav = line_wavs[lineCompInd]
 		line_index = line_indices[lineCompInd]
 	

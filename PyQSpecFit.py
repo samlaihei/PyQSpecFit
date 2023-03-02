@@ -79,8 +79,8 @@ class PyQSpecFit():
 		Parameters:
 		-----------
 		dataDir: string
-			points to location of csv datafiles setup with columns ['Wavelength', 'Flux', 'eFlux']
-			line models will follow units of the Flux column, but ideally it should be observed erg/s/cm2/Angstrom
+			Points to location of csv datafiles setup with columns ['Wavelength', 'Flux', 'eFlux']
+			Line models will follow units of the Flux column, but ideally it should be observed erg/s/cm2/Angstrom
 			Wavelength should be in rest-frame.
 		"""
 		
@@ -113,6 +113,53 @@ class PyQSpecFit():
 			   useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0,
 			   dataOutPath='Line_Params/'):
 			
+			"""
+			Run main fitting routine.
+
+			Parameters:
+			-----------
+			lineFile: string
+				Points to location of the file which determines the lines to be fit and their parameters.
+				
+			contiWindow: 1D array
+				Set of rest-frame windows in Angstrom which should be used to fit the continuum model.
+				
+			lineWindow: 1D array
+				Set of windows in Angstrom used to fit the emission-lines named in the lineFile.
+				
+			N_fits: integer
+				Number of fits to perform, should generally be accompanied by syntheticFits=True
+			
+			normSwitch: bool
+				Whether to normalise the spectrum. Should almost always be on.
+				
+			dataOut: bool
+				Whether to output the data.
+			
+			syntheticFits: bool
+				Toggle resampling of the spectrum based on error spectrum.
+			
+			globalLineShift: float
+				Shift all lines in lineFile by some value in Angstroms. Useful if redshift is slightly incorrect.
+				It's recommended to adjust the redshift prior to fitting, but this is used if you want to fit anyway.
+				
+			sig_clip: bool
+				Toggle sigma-clipping of the spectrum
+			
+			clipSigma, clipBoxWidth, clipBufferWidth: floats
+				Parameters used for sigma-clipping
+			
+			useBalmer, useFe: bool
+				Toggles for using the Balmer and FeII continuum models
+				
+			Fe_uv_ind, Fe_opt_ind: integer
+				Choice for the UV and optical FeII model, defined up to 3
+				
+			dataOutPath: string
+				Determines where the output data file will be deposited.
+				
+			"""
+		
 			self.Fe_uv_ind = Fe_uv_ind
 			self.Fe_opt_ind = Fe_opt_ind
 			self.useBalmer = useBalmer
@@ -250,6 +297,38 @@ class PyQSpecFit():
 						   lamWindow=[1200, 8000], lineCompInd=0,
 						   Fe_uv_ind=0, Fe_opt_ind=0,
 						   outDir='Line_Properties/'):
+						   
+		"""
+		Run main line property evaluation routine.
+
+		Parameters:
+		-----------
+		lineFile: string
+			Points to location of the file which determines the lines to be fit and their parameters.
+		
+		fitFile: string
+			Points to location of file containing the line model data
+			
+		redshift: float
+			Redshift of target
+			
+		monoLumAngstrom: string
+			Rest-frame location in Angstrom for where to calculate the monochromatic luminosity.
+			
+		lamWindow: 1D array, size 2
+			Window in Angstrom that should encompass all of the lines of interest
+			
+		lineCompInd: integer
+			Points to the line complex whose properties are to be measured. Follows lineFile
+
+		Fe_uv_ind, Fe_opt_ind: integer
+			Choice for the UV and optical FeII model, defined up to 3
+			
+		outDir: string
+			Determines where the output data file will be deposited.
+			
+		"""
+
 		# Assumes flux is in units of erg/s/cm2/Angstrom #
 		self.useBalmer = True
 		self.useFe = True
@@ -324,8 +403,48 @@ class PyQSpecFit():
 	
 	def plotLineFits(self, data_ax, resid_ax, lineFile, dataFile, fitFile, redshift,
 					 plotWindow=[1200, 8000], dataInd=0, lineCompInd=0,
-					 Fe_uv_ind=0, Fe_opt_ind=0,
-					 outDir='Fit_Figs/'):
+					 Fe_uv_ind=0, Fe_opt_ind=0):
+					 
+		"""
+		Run main plotting routine.
+
+		Parameters:
+		-----------
+		data_ax: matplotlib axes object
+			Provides axes to plot the data
+			
+		resid_ax: matplotlib axes object
+			Provides axes to plot the residual
+			
+		lineFile: string
+			Points to location of the file which determines the lines to be fit and their parameters.
+		
+		dataFile: string
+			Points to location of file containing the spectral data
+		
+		fitFile: string
+			Points to location of file containing the line model data	
+		
+		redshift: float
+			Redshift of target
+			
+		plotWindow: 1D array, size 2
+			Window in Angstrom that determines wavelength range of plot
+			
+		dataInd: integer
+			Used to determine which run in fitFile to plot
+			
+		lineCompInd: integer
+			Points to the line complex to be plotted in red, where all others are green. Follows lineFile
+
+		Fe_uv_ind, Fe_opt_ind: integer
+			Choice for the UV and optical FeII model, defined up to 3
+			
+		outDir: string
+			Determines where the output data file will be deposited.
+			
+		"""
+		
 		self.useBalmer = True
 		self.useFe = True
 		self.Fe_uv_ind = Fe_uv_ind

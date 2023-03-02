@@ -80,7 +80,8 @@ class PyQSpecFit():
 		-----------
 		dataDir: string
 			points to location of csv datafiles setup with columns ['Wavelength', 'Flux', 'eFlux']
-			line models will follow units of the Flux column
+			line models will follow units of the Flux column, but ideally it should be observed erg/s/cm2/Angstrom
+			Wavelength should be in rest-frame.
 		"""
 		
 		self.dataDir = dataDir
@@ -107,9 +108,8 @@ class PyQSpecFit():
 		self.init_fe_op_fwhms = [1200., 1200., 800., 600.]
 	
 	def runFit(self, lineFile, contiWindow, lineWindow, N_fits=1,
-			   normSwitch=True, dataOut=True, syntheticFits=False,
+			   normSwitch=True, dataOut=True, syntheticFits=False, globalLineShift=0,
 			   sig_clip=False, clipSigma=3, clipBoxWidth=50, clipBufferWidth=3,
-			   lineShift=0, allowedShift=30,
 			   useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0,
 			   dataOutPath='Line_Params/'):
 			
@@ -146,7 +146,7 @@ class PyQSpecFit():
 					if syntheticFits:
 						lams, flux, eflux = self.create_synthetic(lams, flux, eflux)
 
-					if normSwitch:
+					if normSwitch: # almost always keep this toggled
 						self.norm_median = np.nanmedian(flux)
 						flux = flux/self.norm_median
 						eflux = eflux/self.norm_median
@@ -204,19 +204,21 @@ class PyQSpecFit():
 					line_names = pdata_lines['Name']
 					line_wave = pdata_lines['Central Wavelength']
 					line_norms = pdata_lines['Init_Norm']
+					line_shifts = pdata_lines['Allowed_Shift']
 		
-					fwhm_lows = pdata_lines['FWHM_low']
-					fwhm_highs = pdata_lines['FWHM_high']
+					sigma_lows = pdata_lines['Sigma_low']
+					sigma_highs = pdata_lines['Sigma_high']
 
 					# SkewNorm Fitting
 					init_params = []
 					init_parinfo = []
-					self.line_header = ['Skew', 'FWHM', 'Norm', 'Wavelength']
+					self.line_header = ['Skew', 'Sigma', 'Norm', 'Wavelength']
 
 					for index, line in enumerate(line_names):
 						# Line Parameters: Skew, Scale, Norm, Central Wavelength
-						line_init_params = [0., fwhm_lows[index], line_norms[index], line_wave[index]+lineShift]
-						line_parinfo = [{'fixed': True}, {'limits': (fwhm_lows[index], fwhm_highs[index])}, {'limits': (0., 1E2)}, {'limits': (line_wave[index]+lineShift-allowedShift, line_wave[index]+lineShift+allowedShift)}]
+						line_init_params = [0., sigma_lows[index], line_norms[index], line_wave[index]+globalLineShift]
+						line_parinfo = [{'fixed': True}, {'limits': (sigma_lows[index], sigma_highs[index])}, {'limits': (0., 1E2)}, 
+										{'limits': (line_wave[index]+globalLineShift-line_shifts[index], line_wave[index]+globalLineShift+line_shifts[index])}]
 						init_params += line_init_params
 						init_parinfo += line_parinfo
 
@@ -225,7 +227,7 @@ class PyQSpecFit():
 					if sig_clip:
 						mask = self.create_mask_window(xx, lineWindow)
 						xx, yy, e_yy = np.array(xx)[mask], np.array(yy)[mask], np.array(e_yy)[mask]
-						xx, yy, e_yy = self.sigma_mask_buffer(50, 3.0, xx, yy, e_yy, 3)
+						xx, yy, e_yy = self.sigma_mask_buffer(clipBoxWidth, clipSigma, xx, yy, e_yy, clipBufferWidth)
 
 					fitobj = kmpfit.Fitter(residuals=self.residual_line, data=(xx, yy, e_yy, lineWindow))
 					fitobj.parinfo = init_parinfo
@@ -244,13 +246,13 @@ class PyQSpecFit():
 
 
 
-	def evalLineProperties(self, lineFile, fitFile, redshift, monoLumAngstrom = 3000.,
-						   lamWindow=[1200, 8000], lineCompInd = 0,
-						   useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0,
+	def evalLineProperties(self, lineFile, fitFile, redshift, monoLumAngstrom=3000.,
+						   lamWindow=[1200, 8000], lineCompInd=0,
+						   Fe_uv_ind=0, Fe_opt_ind=0,
 						   outDir='Line_Properties/'):
 		# Assumes flux is in units of erg/s/cm2/Angstrom #
-		self.useBalmer = useBalmer
-		self.useFe = useFe
+		self.useBalmer = True
+		self.useFe = True
 		self.Fe_uv_ind = Fe_uv_ind
 		self.Fe_opt_ind = Fe_opt_ind
 		outName = fitFile.split('/')[-1][:-4]
@@ -259,35 +261,14 @@ class PyQSpecFit():
 		self.cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 		dl = self.cosmo.luminosity_distance(redshift).to(u.cm)
 		
-		line_list_pdata = pd.read_csv(lineFile)
-		total_line_shape = len(line_list_pdata['Name'])
+		N_gauss, vac_wav, line_index = self.readLineFile(lineFile, lineCompInd)
 
-		line_names, line_wavs = [], []
-		line_indices = []
-		for ind, (name, c_wav) in enumerate(zip(line_list_pdata['Name'].to_numpy(),line_list_pdata['Central Wavelength'])):
-			if name != '' and name != ' ' and not pd.isnull(name):
-				if len(line_names) > 0:
-					line_indices.append(indices)
-				indices = [ind]
-				line_names.append(name)
-				line_wavs.append(c_wav)
-			else:
-				indices.append(ind)
-			if ind == len(line_list_pdata['Name'].to_numpy())-1:
-				line_indices.append(indices)
-
-		#print(line_names, line_wavs, line_indices)
-		vac_wav = line_wavs[lineCompInd]
-		line_index = line_indices[lineCompInd]
-	
 		temp_res_props = [[] for i in res_props_header]
 		temp_res_props_err = [[] for i in res_props_header]
 		lams = np.linspace(lamWindow[0], lamWindow[1], int(np.ptp(lamWindow)*5.))
 	
 		pdata = pd.read_csv(fitFile)
 		
-		N_gauss = total_line_shape
-	
 		rescale = pdata['Norm_Factor'].to_numpy().reshape(int(len(pdata['Norm_Factor'].to_numpy())/N_gauss), N_gauss)
 		conti_header = ['PL_Norm', 'PL_Slope', 'Fe_UV_Norm', 'Fe_UV_FWHM', 'Fe_UV_del', 
 						'Fe_Opt_Norm', 'Fe_Opt_FWHM', 'Fe_Opt_del', 'Balmer_norm', 'Balmer_Te', 'Balmer_tau']
@@ -295,7 +276,7 @@ class PyQSpecFit():
 
 		line_norms = pdata['Norm'].to_numpy().reshape(int(len(pdata['Norm'].to_numpy())/N_gauss), N_gauss)
 		line_wavs = pdata['Wavelength'].to_numpy().reshape(int(len(pdata['Wavelength'].to_numpy())/N_gauss), N_gauss)
-		line_FWHM = pdata['FWHM'].to_numpy().reshape(int(len(pdata['FWHM'].to_numpy())/N_gauss), N_gauss)
+		line_FWHM = pdata['Sigma'].to_numpy().reshape(int(len(pdata['Sigma'].to_numpy())/N_gauss), N_gauss)
 		
 		for index, (norms, wavs, fwhms, contip, rescale_facs) in enumerate(zip(line_norms, line_wavs, line_FWHM, contips, rescale)):
 
@@ -327,6 +308,8 @@ class PyQSpecFit():
 	
 		res_props = [np.nanmean(i) for i in temp_res_props]
 		res_props_err = [np.std(i) for i in temp_res_props]
+		
+		# sigma_clipping is recommended if there are weird anomalous measurements
 		#res_props = [np.nanmean(sigma_clip(i, sigma=3, maxiters=5)) for i in temp_res_props]
 		#res_props_err = [np.std(sigma_clip(i, sigma=3, maxiters=5)) for i in temp_res_props]
 	
@@ -340,11 +323,11 @@ class PyQSpecFit():
 	
 	
 	def plotLineFits(self, data_ax, resid_ax, lineFile, dataFile, fitFile, redshift,
-					 plotWindow=[1200, 8000], dataInd = 0,
-					 useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0,
+					 plotWindow=[1200, 8000], dataInd=0, lineCompInd=0,
+					 Fe_uv_ind=0, Fe_opt_ind=0,
 					 outDir='Fit_Figs/'):
-		self.useBalmer = useBalmer
-		self.useFe = useFe
+		self.useBalmer = True
+		self.useFe = True
 		self.Fe_uv_ind = Fe_uv_ind
 		self.Fe_opt_ind = Fe_opt_ind
 		
@@ -372,7 +355,7 @@ class PyQSpecFit():
 		atm_trans_plot = atm_trans_plot[np.where(atm_trans_plot < 0.38)]
 	
 		line_list_pdata = pd.read_csv(lineFile)
-		N_gauss = len(line_list_pdata['Name'])
+		N_gauss, vac_wav, line_indices = self.readLineFile(lineFile, lineCompInd)
 	
 		rescale = pdata['Norm_Factor'].to_numpy().reshape(int(len(pdata['Norm_Factor'].to_numpy())/N_gauss), N_gauss)[dataInd]*norm_fac
 		conti_header = ['PL_Norm', 'PL_Slope', 'Fe_UV_Norm', 'Fe_UV_FWHM', 'Fe_UV_del', 
@@ -380,22 +363,25 @@ class PyQSpecFit():
 		contips = np.transpose([pdata[i].to_numpy().reshape(int(len(pdata[i].to_numpy())/N_gauss), N_gauss) for i in conti_header])[0][dataInd]
 		line_norms = pdata['Norm'].to_numpy().reshape(int(len(pdata['Norm'].to_numpy())/N_gauss), N_gauss)[dataInd]
 		line_wavs = pdata['Wavelength'].to_numpy().reshape(int(len(pdata['Wavelength'].to_numpy())/N_gauss), N_gauss)[dataInd]
-		line_FWHM = pdata['FWHM'].to_numpy().reshape(int(len(pdata['FWHM'].to_numpy())/N_gauss), N_gauss)[dataInd]
+		line_FWHM = pdata['Sigma'].to_numpy().reshape(int(len(pdata['Sigma'].to_numpy())/N_gauss), N_gauss)[dataInd]
 	
 		line_profiles = []
 		conti_profile = self.eval_conti_all(contips, lams)*rescale[0]
 		PL_profile = self.eval_PL(contips, lams)*rescale[0]
 	
 		for line_index, (norm, wav, fwhm, rescale_fac) in enumerate(zip(line_norms, line_wavs, line_FWHM, rescale)):
-			temp_line = self.eval_line_full([0, fwhm, norm, wav], lams)*rescale_fac
-		
 			if norm == 0:
 				continue
+			temp_line = self.eval_line_full([0, fwhm, norm, wav], lams)*rescale_fac
 			current_inset_window = np.clip(lams[np.where(temp_line > 0.01*np.nanmax(temp_line))], plotWindow[0], plotWindow[1])
 			current_inset_window = np.array([np.nanmin(current_inset_window), np.nanmax(current_inset_window)])
+			if line_index in line_indices:
+				dashed_color = 'r'
+			else:
+				dashed_color = 'g'
 			data_ax.plot(lams[np.logical_and(lams>current_inset_window[0], lams<current_inset_window[1])], 
 									 (conti_profile+temp_line)[np.logical_and(lams>current_inset_window[0], lams<current_inset_window[1])],
-									 '--', c = 'r')
+									 '--', c = dashed_color)
 
 			line_profiles.append(temp_line)
 
@@ -724,8 +710,28 @@ class PyQSpecFit():
 				out_header = ['Filename', 'Name', 'Norm_Factor'] + list(self.line_header) + list(self.conti_header)
 				self.write_to_file(dataout_filename, out_header, data_row)
 
-	
+	def readLineFile(self, lineFile, lineCompInd):
+		line_list_pdata = pd.read_csv(lineFile)
+		N_gauss = len(line_list_pdata['Name'])
 
+		line_names, line_wavs = [], []
+		line_indices = []
+		for ind, (name, c_wav) in enumerate(zip(line_list_pdata['Name'].to_numpy(),line_list_pdata['Central Wavelength'])):
+			if name != '' and name != ' ' and not pd.isnull(name):
+				if len(line_names) > 0:
+					line_indices.append(indices)
+				indices = [ind]
+				line_names.append(name)
+				line_wavs.append(c_wav)
+			else:
+				indices.append(ind)
+			if ind == len(line_list_pdata['Name'].to_numpy())-1:
+				line_indices.append(indices)
+
+		#print(line_names, line_wavs, line_indices)
+		vac_wav = line_wavs[lineCompInd]
+		line_index = line_indices[lineCompInd]
+		return [N_gauss, vac_wav, line_index]
 
 
 

@@ -1,5 +1,5 @@
-Name,Group,Central Wavelength,Init_Norm,FWHM_low,FWHM_high
-MgII_br,1,2799.117,50,425,4250
- ,2,2799.117,50,425,4250
- ,2,2799.117,50,425,4250
-MgII_na,2,2799.117,50,85,424
+Name,Group,Central Wavelength,Init_Norm,Sigma_low,Sigma_high,Allowed_Shift
+MgII_br,0,2799.117,50,425,4250,30
+ ,0,2799.117,50,425,4250,30
+ ,0,2799.117,50,425,4250,30
+MgII_na,0,2799.117,50,85,424,10

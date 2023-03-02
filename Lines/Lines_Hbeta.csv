@@ -1,5 +1,5 @@
-Name,Group,Central Wavelength,Init_Norm,FWHM_low,FWHM_high
-Hbeta_br,0,4861,30,510,8000
- ,0,4861,30,510,8000
- ,0,4861,30,510,8000
-Hbeta_na,0,4861,30,85,500
+Name,Group,Central Wavelength,Init_Norm,Sigma_low,Sigma_high,Allowed_Shift
+Hbeta_br,0,4861,30,510,8000,30
+ ,0,4861,30,510,8000,30
+ ,0,4861,30,510,8000,30
+Hbeta_na,0,4861,30,85,500,10

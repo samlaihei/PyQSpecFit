@@ -60,6 +60,8 @@ import scipy.constants as con
 from specutils import Spectrum1D
 from specutils.analysis import line_flux, equivalent_width
 from specutils.analysis import fwhm as specutils_fwhm
+from specutils.manipulation import (box_smooth, gaussian_smooth, trapezoid_smooth, median_smooth)
+
 
 # Uncertainty
 from uncertainties import ufloat

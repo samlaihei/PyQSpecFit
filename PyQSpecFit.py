@@ -16,7 +16,17 @@
 #########
 # To Do #
 #########
-# Cleanup 
+# Cleanup, Choose to use skewed Gaussians
+# Consistent and modifiable cosmology
+# Toggle legend - for multiplots
+# Optional smoothing
+# Plot vertical highlighting
+# Save used template to file, replace template input
+# Observed frame input with redshift
+# Units interpreting and handling
+# Tie line complexes together
+# Different line models: PL, Gauss Hermite, Lorentzian
+# Update redshift, custom output in evalLineProperties
 #
 
 
@@ -34,7 +44,6 @@
 ###################
 import glob
 import os
-#from colossus.cosmology import cosmology
 
 # Numpy and Pandas and I/O
 import numpy as np
@@ -60,7 +69,6 @@ import scipy.constants as con
 from specutils import Spectrum1D
 from specutils.analysis import line_flux, equivalent_width
 from specutils.analysis import fwhm as specutils_fwhm
-from specutils.manipulation import (box_smooth, gaussian_smooth, trapezoid_smooth, median_smooth)
 
 
 # Uncertainty
@@ -95,7 +103,7 @@ class PyQSpecFit():
 		T06[:,0], T06[:,1] = T06[:,0], T06[:,1]*10**15
 		M16 = np.genfromtxt(template_path+'feII_UV_Mejia-Restrepo_et_al_2016_2200-3646AA.data.txt')
 		M16[:,0], M16[:,1] = M16[:,0], M16[:,1]*10
-		BV08 = np.genfromtxt(template_path+'BruhweilerVerner2008/d11-m20-21-735.txt')
+		BV08 = np.genfromtxt(template_path+'BruhweilerVerner2008/d11-m20-21-735_uv.txt')
 		BV08[:,0], BV08[:,1] = BV08[:,0], BV08[:,1]*10**(-6)
 		self.fe_uvs = [VW01, T06, M16, BV08]
 		self.init_fe_uv_fwhms = [900., 900., 900., 800.]
@@ -106,7 +114,9 @@ class PyQSpecFit():
 		T06_opt[:,0], T06_opt[:,1] = T06_opt[:,0], T06_opt[:,1]*10**15
 		P22 = np.genfromtxt(template_path + 'Park+2022.Mrk493_OpticalFeTemplate.txt')
 		P22[:,0], P22[:,1] = P22[:,0], P22[:,1]*10.
-		self.fe_ops = [BG92, T06_opt, P22, BV08]
+		BV08_opt = np.genfromtxt(template_path+'BruhweilerVerner2008/d11-m20-21-735_opt.txt')
+		BV08_opt[:,0], BV08_opt[:,1] = BV08_opt[:,0], BV08_opt[:,1]*10**(-6)
+		self.fe_ops = [BG92, T06_opt, P22, BV08_opt]
 		self.init_fe_op_fwhms = [1200., 1200., 800., 600.]
 	
 	def runFit(self, lineFile, contiWindow, lineWindow, N_fits=1,
@@ -390,11 +400,9 @@ class PyQSpecFit():
 		res_props = [np.nanmean(i) for i in temp_res_props]
 		res_props_err = [np.std(i) for i in temp_res_props]
 		
-		# sigma_clipping is recommended if there are weird anomalous measurements
+		# sigma_clipping is recommended if there are weird anomalous measurements, replace the above with below
 		#res_props = [np.nanmean(sigma_clip(i, sigma=3, maxiters=5)) for i in temp_res_props]
 		#res_props_err = [np.std(sigma_clip(i, sigma=3, maxiters=5)) for i in temp_res_props]
-	
-		#print(res_props, res_props_err)
 
 		pdata = pd.DataFrame()
 		for ind, val in enumerate(res_props_header):
@@ -402,6 +410,7 @@ class PyQSpecFit():
 			pdata['e'+val] = [res_props_err[ind]]
 		pdata.to_csv(outDir+outName+'.csv', index=False)
 	
+		return [res_props_header, res_props, res_props_err]
 	
 	def plotLineFits(self, data_ax, resid_ax, lineFile, dataFile, fitFile, redshift,
 					 plotWindow=[1200, 8000], dataInd=0, lineCompInd=0,
@@ -452,6 +461,7 @@ class PyQSpecFit():
 		self.Fe_uv_ind = Fe_uv_ind
 		self.Fe_opt_ind = Fe_opt_ind
 		
+		print("Plotting...")
 		
 		plt.rcParams.update({
 			"font.family": "sans-serif",
@@ -590,8 +600,6 @@ class PyQSpecFit():
 		return mask
 
 	def sigma_mask_buffer(self, box_width, sigma, lams, flux, err, mask_buffer):
-		spectrum = Spectrum1D(spectral_axis=lams * u.angstrom, flux=flux*u.Jy)
-		box_smoothed = box_smooth(spectrum, width = box_width)
 		master_mask = [True for x in lams]
 		for lam_index, lam in enumerate(lams):
 			if lam_index < box_width/2.:

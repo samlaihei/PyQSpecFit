@@ -16,17 +16,19 @@
 #########
 # To Do #
 #########
-# Cleanup, Choose to use skewed Gaussians
-# Consistent and modifiable cosmology
-# Toggle legend - for multiplots
-# Optional smoothing
-# Plot vertical highlighting
-# Save used template to file, replace template input
-# Observed frame input with redshift
-# Units interpreting and handling
-# Tie line complexes together
-# Different line models: PL, Gauss Hermite, Lorentzian
-# Update redshift, custom output in evalLineProperties
+# TODO: Cleanup
+# TODO: Choice of using skewed Gaussians
+# TODO: Custom cosmology
+# TODO: Toggle legend - for multiplots
+# TODO: Optional smoothing
+# TODO: Plot vertical highlighting
+# TODO: Save used template to file, replace template input
+# TODO: Observed frame input with redshift
+# TODO: Check Balmer continuum
+# TODO: Units interpreting and handling
+# TODO: Tie line complexes together
+# TODO: Different line models: PL, Gauss Hermite, Lorentzian
+# TODO: Update redshift, custom output in evalLineProperties
 #
 
 

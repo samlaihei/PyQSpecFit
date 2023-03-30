@@ -428,7 +428,7 @@ class PyQSpecFit():
 	
 	def plotLineFits(self, data_ax, resid_ax, lineFile, dataFile, fitFile, redshift,
 					 plotWindow=[1200, 8000], dataInd=0, lineCompInd=0,
-					 Fe_uv_ind=0, Fe_opt_ind=0):
+					 Fe_uv_ind=0, Fe_opt_ind=0, vspanRanges=[]):
 					 
 		"""
 		Run main plotting routine.
@@ -598,6 +598,9 @@ class PyQSpecFit():
 		resid_ax.tick_params(labelleft=True)
 		resid_ax.set_ylabel('Residual ($\\sigma$)')
 		resid_ax.set_xlabel('Rest Wavelength $(\\rm{\\AA})$')
+
+		for i in vspanRanges:
+			data_ax.axvspan(i[0], i[1], fc='b', alpha=0.5)
 
 
 	###########

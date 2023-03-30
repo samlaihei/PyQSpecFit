@@ -204,7 +204,7 @@ class PyQSpecFit():
 					flux = np.array(temp_flux)
 					eflux = np.array(temp_eflux)
 
-					if syntheticFits:
+					if syntheticFits or N_fits > 1:
 						lams, flux, eflux = self.create_synthetic(lams, flux, eflux)
 
 					if normSwitch: # almost always keep this toggled

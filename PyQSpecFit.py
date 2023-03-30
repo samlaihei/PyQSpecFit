@@ -29,6 +29,7 @@
 # TODO: Tie line complexes together
 # TODO: Different line models: PL, Gauss Hermite, Lorentzian
 # TODO: Update redshift, custom output in evalLineProperties
+# TODO: Write tests
 #
 
 
@@ -235,7 +236,7 @@ class PyQSpecFit():
 					tmp_parinfo = [{'limits': (0, 1E3)}, {'limits': (-5, 3)}, 
 								  {'limits': (0., 1E3)}, {'limits': (1E3, 1E4)}, {'limits': (-0.02, 0.02)},
 									{'limits': (0., 1E3)}, {'limits': (1E3, 1E4)}, {'limits': (-0.02, 0.02)},
-									{'limits': (0., 1E3)}, {'limits': (1E3, 5E4)}, {'limits': (0.1, 4.)}]
+									{'limits': (0., 1)}, {'limits': (1E3, 5E4)}, {'limits': (0.1, 4.)}]
 					init_params = [1.0, 0., 0., 3000., 0., 0., 3000., 0., 0., 10000, 0.1]
 
 					print('Fitting Continuum...')
@@ -309,7 +310,7 @@ class PyQSpecFit():
 
 	def evalLineProperties(self, lineFile, fitFile, redshift, monoLumAngstrom=3000.,
 						   lamWindow=[1200, 8000], lineCompInd=0,
-						   Fe_uv_ind=0, Fe_opt_ind=0,
+						   Fe_uv_ind=0, Fe_opt_ind=0, Fe_cycle=False, sigClipProp=False,
 						   outDir='Line_Properties/'):
 						   
 		"""
@@ -337,6 +338,12 @@ class PyQSpecFit():
 
 		Fe_uv_ind, Fe_opt_ind: integer
 			Choice for the UV and optical FeII model, defined up to 3
+			
+		Fe_cycle: bool
+			Cycles through the available FeII models, depends on datafile following FeII template order
+			
+		sigClipProp: bool
+			Switch to sigma clip line properties, useful if there are significant outliers in line properties
 			
 		outDir: string
 			Determines where the output data file will be deposited.
@@ -372,7 +379,10 @@ class PyQSpecFit():
 		line_FWHM = pdata['Sigma'].to_numpy().reshape(int(len(pdata['Sigma'].to_numpy())/N_gauss), N_gauss)
 		
 		for index, (norms, wavs, fwhms, contip, rescale_facs) in enumerate(zip(line_norms, line_wavs, line_FWHM, contips, rescale)):
-
+			if Fe_cycle:
+				self.Fe_uv_ind = index%4
+				self.Fe_opt_ind = index%4
+				
 			line_profiles = []
 			conti_profile = self.eval_conti_all(contip, lams)*rescale_facs[0]
 			PL_profile = self.eval_PL(contip, lams)*rescale_facs[0]
@@ -399,12 +409,14 @@ class PyQSpecFit():
 			temp_res_props[5].append(np.log10(self.calc_line_flux(lams, tot_line)*4*np.pi*dl.value**2*(1+redshift))) # Integrated Luminosity
 			temp_res_props[6].append(np.log10(lum))
 	
-		res_props = [np.nanmean(i) for i in temp_res_props]
-		res_props_err = [np.std(i) for i in temp_res_props]
 		
+		if sigClipProp:
 		# sigma_clipping is recommended if there are weird anomalous measurements, replace the above with below
-		#res_props = [np.nanmean(sigma_clip(i, sigma=3, maxiters=5)) for i in temp_res_props]
-		#res_props_err = [np.std(sigma_clip(i, sigma=3, maxiters=5)) for i in temp_res_props]
+			res_props = [np.nanmean(sigma_clip(i, sigma=3, maxiters=5)) for i in temp_res_props]
+			res_props_err = [np.std(sigma_clip(i, sigma=3, maxiters=5)) for i in temp_res_props]
+		else:
+			res_props = [np.nanmean(i) for i in temp_res_props]
+			res_props_err = [np.std(i) for i in temp_res_props]
 
 		pdata = pd.DataFrame()
 		for ind, val in enumerate(res_props_header):
@@ -863,7 +875,61 @@ class PyQSpecFit():
 		vac_wav = line_wavs[lineCompInd]
 		line_index = line_indices[lineCompInd]
 		return [N_gauss, vac_wav, line_index]
+		
+		
+	def mergeUncertainty(self, fileList, outfile='test.csv', mergeAll=False):
+		pdata1 = pd.read_csv(fileList[0])
+		headers = pdata1.columns
+		headers = np.array([i for i in headers if i[0]!='e'])
+		
+		pdataList = [pd.read_csv(i) for i in fileList]
 
+		for header in headers:
+			valsList = np.array([p[header].to_numpy() for p in pdataList])
+			evalsList = np.array([p['e'+header].to_numpy() for p in pdataList])
+			res = [0 for i in valsList[0]]
+			eres = [0 for i in evalsList[0]]
+			for val, eval in zip(valsList, evalsList):
+				val[np.isnan(val)]=0
+				eval[np.isnan(eval)]=0
+				res += val
+				eres += eval**2
+			notNanNum = np.transpose(valsList)
+			notNanNum = [len(i[i!=0]) for i in notNanNum]
+			eres = np.array([np.sqrt(i) for i in eres])
+			if mergeAll:
+				pdata1[header] = res/notNanNum
+				pdata1['e'+header] = eres/notNanNum
+			else:
+				eres[eres==0] = np.nan
+				pdata1['e'+header] = eres
+
+		pdata1.to_csv(outfile, index=False)
+
+	def virial_BH_mass(self, mono_lum, line_FWHM, CIV_bshift=0):
+
+		# Shen 2011
+		mbh = 10**(6.74)*(mono_lum/10**(44))**(0.62) * (line_FWHM/10**3)**2 # MgII
+		# Vestergaard & Osmer 2009
+		#mbh = 10**(6.86)*(mono_lum/10**(44))**(0.5) * (line_FWHM/10**3)**2 # MgII
+		# Le, Woo, & Xue 2020
+		#mbh = 10**(7.04)*(mono_lum/10**(44))**(0.5) * (line_FWHM/10**3)**2 # MgII
+		# Woo et al. 2018 (weird)
+		#mbh = 10**(6.75)*(mono_lum/10**(44))**(0.74) * (line_FWHM/10**3)**(2.35) # MgII
+		
+		# Vestergaard & Peterson 2006
+		#mbh = 10**(6.66)*(mono_lum/10**(44))**(0.53) * (line_FWHM/10**3)**2 # CIV
+		# Shen 2011 (weird)
+		#mbh = 10**(7.295)*(mono_lum/10**(44))**(0.471) * (line_FWHM/10**3)**(0.242) # CIV
+		# Coatman et al. 2017
+		#line_FWHM = line_FWHM/(ufloat(0.36, 0.03)*(CIV_bshift/1000)+ufloat(0.61, 0.04))
+		#mbh = 10**(6.71)*(mono_lum/10**(44))**(0.53) * (line_FWHM/10**3)**2 # CIV
+
+		# Le 2020
+		#mbh = 10**(6.87)*(mono_lum/10**(44))**(0.53) * (line_FWHM/10**3)**2 # Hbeta
+		# Vestergaard & Peterson 2006
+		#mbh = 10**(6.91)*(mono_lum/10**(44))**(0.50) * (line_FWHM/10**3)**2 # Hbeta
+		return mbh # in solar masses
 
 
 

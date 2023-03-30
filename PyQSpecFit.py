@@ -21,7 +21,6 @@
 # TODO: Custom cosmology
 # TODO: Toggle legend - for multiplots
 # TODO: Optional smoothing
-# TODO: Plot vertical highlighting
 # TODO: Save used template to file, replace template input
 # TODO: Observed frame input with redshift
 # TODO: Check Balmer continuum

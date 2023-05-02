@@ -33,4 +33,4 @@ The preferred citations for this code are the following:
 >  version      = {v1.0.0},\
 >  doi          = {10.5281/zenodo.7772752},\
 >  url          = {https://doi.org/10.5281/zenodo.7772752}\
->}
+> }

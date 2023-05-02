@@ -123,6 +123,7 @@ class PyQSpecFit():
 	
 	def runFit(self, lineFile, contiWindow, lineWindow, N_fits=1,
 			   normSwitch=True, dataOut=True, syntheticFits=False, globalLineShift=0,
+			   smoothing=False, smoothingSigma=3,
 			   sig_clip=False, clipSigma=3, clipBoxWidth=50, clipBufferWidth=3,
 			   useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0,
 			   dataOutPath='Line_Params/'):
@@ -211,6 +212,14 @@ class PyQSpecFit():
 						self.norm_median = np.nanmedian(flux)
 						flux = flux/self.norm_median
 						eflux = eflux/self.norm_median
+						
+					if smoothing:
+						spec1 = Spectrum1D(spectral_axis=lams*u.angstrom, flux=flux*u.Jy)
+						spec1 = gaussian_smooth(spec1, stddev=smoothingSigma)
+						lams = spec1.spectral_axis
+						lams = np.array([i.value for i in lams])
+						flux = spec1.flux
+						flux = np.array([i.value for i in flux])
 
 
 					#################

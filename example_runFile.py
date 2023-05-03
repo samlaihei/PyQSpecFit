@@ -1,27 +1,17 @@
-# Example
+# Example of running PyQSpecFit from special parameter file
 import PyQSpecFit
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 
-
-
-# Continuum Fitting Windows #
-conti_windows = np.array([[1973., 1983.], [2060., 2340.], [2600., 2740.], [2840., 3100.]])
-
-# Filepath with Lines Definition #
-line_path = 'Lines/Lines_MgII.csv'
-
-# Line Fitting Windows #
-line_fit_MgII = [[2750., 2850.]]
-
+file = 'Run_Files/example.csv'
 
 example = PyQSpecFit.PyQSpecFit()
 
 # Perform fits #
-example.runFit(line_path, conti_windows, line_fit_MgII, N_fits = 10, useFe=True)
+example.runFile(file)
 
 # Evaluate line #
+line_path = pd.read_csv(file)['LineFile'].to_numpy()[0]
 example.evalLineProperties(line_path, 'Line_Params/example.csv', 0.83, lineCompInd=0)
 
 # Create plots #
@@ -29,7 +19,6 @@ fig, axs = plt.subplots(2,1, figsize=(8, 6), gridspec_kw=dict(height_ratios=[3,1
 plt.subplots_adjust(wspace= 0.30, hspace= 0.00)
 example.plotLineFits(axs[0], axs[1], line_path, 'data/example.csv', 'Line_Params/example.csv', 0.83, plotWindow=[2500, 3100])
 plt.savefig('Fit_Figs/example.png', dpi=200, bbox_inches='tight')
-
 
 
 

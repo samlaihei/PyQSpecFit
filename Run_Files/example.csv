@@ -1,2 +1,0 @@
-DataFile,LineFile,N_Fits,ContiWindows,LineWindows,useBalmer,useFe,Fe_uv,Fe_opt,lineShift,smoothStddev,clipStddev,clipBoxWidth,clipBufferWidth
-data/example.csv,Lines/Lines_MgII.csv,10,1973-1983 | 2060-2340 | 2600-2740 | 2840-3100,2750-2850,0,1,0,0,0,0,0,50,3

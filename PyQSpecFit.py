@@ -124,7 +124,7 @@ class PyQSpecFit():
                normSwitch=True, dataOut=True, syntheticFits=False, globalLineShift=0,
                smoothingSigma=0, clipSigma=0, clipBoxWidth=50, clipBufferWidth=3,
                useBalmer=False, useFe=False, Fe_uv_ind=0, Fe_opt_ind=0,
-               dataOutPath='Line_Params/'):
+               runName=None, dataOutPath='Line_Params/'):
             
             """
             Run main fitting routine.
@@ -196,7 +196,7 @@ class PyQSpecFit():
             
             datafiles = glob.glob(self.dataDir+'*.csv')
             for datafile in datafiles:
-                self.Fit(datafile)
+                self.Fit(datafile, runName)
                 
             return
 
@@ -211,6 +211,8 @@ class PyQSpecFit():
         
         pdata = pd.read_csv(file)
         for ind, datafile in enumerate(pdata['DataFile'].to_numpy()):
+            runName = pdata['runName'].to_numpy()[ind]
+            
             self.lineFile = pdata['LineFile'].to_numpy()[ind]
             
             self.N_fits = int(pdata['N_Fits'].to_numpy()[ind])
@@ -229,16 +231,18 @@ class PyQSpecFit():
             self.clipBoxWidth = float(pdata['clipBoxWidth'].to_numpy()[ind])
             self.clipBufferWidth = int(pdata['clipBufferWidth'].to_numpy()[ind])
             
-            self.Fit(datafile)
+            self.Fit(datafile, runName)
             
         
         return
         
         
-    def Fit(self, dataFile):
+    def Fit(self, dataFile, runName=None):
+        self.runName = runName
         for i in range(self.N_fits):
-            self.obj_name = dataFile.split('/')[-1][:-4]
-            print(self.obj_name)
+            if self.runName == None:
+                self.runName = dataFile.split('/')[-1][:-4]
+            print(self.runName)
 
             pdata = pd.read_csv(dataFile)
             lams = pdata['Wavelength'].to_numpy() # in angstrom
@@ -486,7 +490,7 @@ class PyQSpecFit():
         return [res_props_header, res_props, res_props_err]
     
     def plotLineFits(self, data_ax, resid_ax, lineFile, dataFile, fitFile, redshift,
-                     plotWindow=[1200, 8000], dataInd=0, lineCompInd=0,
+                     plotWindow=[1200, 8000], dataInd=0, lineCompInd=-1,
                      Fe_uv_ind=0, Fe_opt_ind=0, vspanRanges=[]):
                      
         """
@@ -536,10 +540,10 @@ class PyQSpecFit():
         
         print("Plotting...")
         
-        plt.rcParams.update({
-            "font.family": "sans-serif",
-            "font.sans-serif": ["Helvetica"]})
-        plt.rcParams['font.size'] = 16
+        #plt.rcParams.update({
+        #    "font.family": "sans-serif",
+        #    "font.sans-serif": ["Helvetica"]})
+        #plt.rcParams['font.size'] = 16
         
         
         atm_file = 'atm_file/14k_R2k_1_5_micron.txt'
@@ -579,7 +583,7 @@ class PyQSpecFit():
             temp_line = self.eval_line_full([0, fwhm, norm, wav], lams)*rescale_fac
             current_inset_window = np.clip(lams[np.where(temp_line > 0.01*np.nanmax(temp_line))], plotWindow[0], plotWindow[1])
             current_inset_window = np.array([np.nanmin(current_inset_window), np.nanmax(current_inset_window)])
-            if line_index in line_indices:
+            if line_index in line_indices or lineCompInd < 0:
                 dashed_color = 'r'
             else:
                 dashed_color = 'g'
@@ -914,8 +918,8 @@ class PyQSpecFit():
             print(line_names[i], '\t', current_line_params)
 
             if self.dataOut:
-                dataout_filename = self.dataOutPath + self.obj_name + '.csv'
-                data_row = [self.obj_name, line_names[i]]+ [self.norm_median] + list(current_line_params) + list(self.conti_bestfit)
+                dataout_filename = self.dataOutPath + self.runName + '.csv'
+                data_row = [self.runName, line_names[i]]+ [self.norm_median] + list(current_line_params) + list(self.conti_bestfit)
                 out_header = ['Filename', 'Name', 'Norm_Factor'] + list(self.line_header) + list(self.conti_header)
                 self.write_to_file(dataout_filename, out_header, data_row)
 

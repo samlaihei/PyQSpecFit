@@ -19,14 +19,11 @@
 # TODO: Cleanup
 # TODO: Choice of using skewed Gaussians
 # TODO: Custom cosmology
-# TODO: Toggle legend - for multiplots
 # TODO: Save used template to file, replace template input
 # TODO: Observed frame input with redshift
-# TODO: Check Balmer continuum
 # TODO: Units interpreting and handling
 # TODO: Tie line complexes together
 # TODO: Different line models: PL, Gauss Hermite, Lorentzian
-# TODO: Update redshift, custom output in evalLineProperties
 # TODO: Write tests
 #
 

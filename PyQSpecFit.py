@@ -958,24 +958,36 @@ class PyQSpecFit():
         for header in headers:
             valsList = np.array([p[header].to_numpy() for p in pdataList])
             evalsList = np.array([p['e'+header].to_numpy() for p in pdataList])
-            res = [0 for i in valsList[0]]
             eres = [0 for i in evalsList[0]]
             for val, eval in zip(valsList, evalsList):
-                val[np.isnan(val)]=0
-                eval[np.isnan(eval)]=0
-                res += val
                 eres += eval**2
-            notNanNum = np.transpose(valsList)
-            notNanNum = [len(i[i!=0]) for i in notNanNum]
             eres = np.array([np.sqrt(i) for i in eres])
             if mergeAll:
-                pdata1[header] = res/notNanNum
-                pdata1['e'+header] = eres/notNanNum
+                res, eres = self.flattenWeightedAvg(valsList, evalsList)
+                pdata1[header] = res
+                pdata1['e'+header] = eres
             else:
                 eres[eres==0] = np.nan
                 pdata1['e'+header] = eres
 
         pdata1.to_csv(outfile, index=False)
+        
+    def flattenWeightedAvg(self, resultMatrix, errMatrix):
+        result1D, err1D = [], []
+        resultMatrix, errMatrix = np.transpose(resultMatrix), np.transpose(errMatrix)
+        for line, errline in zip(resultMatrix, errMatrix):
+            result1D.append(self.weighted_avg(line, errline).n)
+            err1D.append(self.weighted_avg(line, errline).s)
+        return result1D, err1D
+            
+    def weighted_avg(self, data, weights): # weights in std
+        new_test = [ufloat(a,b) for a, b in zip(data, weights)]
+        data, weights = np.array(data), 1/np.array(weights)**2
+        result = np.nansum(new_test*weights)/np.nansum(data*weights/data)
+        if result >= 0 or result <= 0:
+            return result
+        else:
+            return ufloat(np.nan, np.nan)
 
     def virial_BH_mass(self, mono_lum, line_FWHM, CIV_bshift=0):
 

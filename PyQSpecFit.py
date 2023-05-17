@@ -314,7 +314,7 @@ class PyQSpecFit():
                 for i in Fe_params_list:
                     params[i].vary=True
             if self.useBalmer:
-                params['Balmer_norm'] = 1E-4
+                params['Balmer_norm'].value = 1E-4
                 Balmer_params_list = ['Balmer_norm', 'Balmer_Te', 'Balmer_tau']
                 for i in Balmer_params_list:
                     params[i].vary=True
@@ -864,14 +864,18 @@ class PyQSpecFit():
         # xval = input wavelength, in units of A
         # pp=[norm, Te, tau_BE] -- in units of [--, K, --]
 
-        lambda_BE = 3646.  # A
-        bbflux = BlackBody(pp[1]*u.K, 1*u.erg/(u.cm**2*u.s*u.AA*u.sr))  
-        bbflux = bbflux(xval*u.AA).value*np.pi # in units of ergs/cm2/s/A
-        tau = pp[2]*(xval/lambda_BE)**3
-        result = pp[0]*bbflux*(1.-np.exp(-tau))
-        ind = np.where(xval > lambda_BE, True, False)
-        if ind.any() == True:
-            result[ind] = 0.
+        if pp[0] > 0:
+            lambda_BE = 3646.  # A
+            bb = BlackBody(pp[1]*u.K, 1*u.erg/(u.cm**2*u.s*u.AA*u.sr))  
+            bbflux = 1E-8*bb(xval*u.AA)*(np.pi*u.sr) # in units of ergs/cm2/s/A
+            tau = pp[2]*(xval/lambda_BE)**3
+            result = pp[0]*bbflux.value*(1.-np.exp(-tau))
+            ind = np.where(xval > lambda_BE, True, False)
+            if ind.any() == True:
+                result[ind] = 0.
+        else:
+            result = np.array([0 for i in xval])
+        
         return result
 
 

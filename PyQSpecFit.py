@@ -52,7 +52,7 @@ import csv
 # Astropy
 from astropy.cosmology import FlatLambdaCDM
 import astropy.units as u
-from kapteyn import kmpfit
+from lmfit import minimize, Parameters, report_fit
 from astropy.modeling.physical_models import BlackBody
 from astropy.stats import sigma_clip
 
@@ -288,31 +288,54 @@ class PyQSpecFit():
              pp[5:8]: same as pp[2:4] but for the Hbeta/Halpha Fe template
              pp[8:11]: norm, Te and Tau_e for the Balmer continuum at <3646 A
             """
-            self.conti_header = ['PL_Norm', 'PL_Slope', 
-                            'Fe_UV_Norm', 'Fe_UV_FWHM', 'Fe_UV_del', 
-                            'Fe_Opt_Norm', 'Fe_Opt_FWHM', 'Fe_Opt_del', 
-                            'Balmer_norm', 'Balmer_Te', 'Balmer_tau']
         
-            tmp_parinfo = [{'limits': (0, 1E3)}, {'limits': (-5, 3)}, 
-                          {'limits': (0., 1E3)}, {'limits': (1E3, 1E4)}, {'limits': (-0.02, 0.02)},
-                            {'limits': (0., 1E3)}, {'limits': (1E3, 1E4)}, {'limits': (-0.02, 0.02)},
-                            {'limits': (0., 1)}, {'limits': (1E3, 5E4)}, {'limits': (0.1, 4.)}]
-            init_params = [1.0, 0., 0., 3000., 0., 0., 3000., 0., 0., 10000, 0.1]
+            tmp_parinfo = [{'name':'PL_Norm', 'limits': (0, 1E3), 'init_value': 1., 'fixed':False}, 
+                           {'name':'PL_Slope', 'limits': (-5, 3), 'init_value': 0., 'fixed':False}, 
+                           {'name':'Fe_UV_Norm', 'limits': (0., 1E3), 'init_value': 0., 'fixed':True}, 
+                           {'name':'Fe_UV_FWHM', 'limits': (1E3, 1E4), 'init_value': 3000., 'fixed':True}, 
+                           {'name':'Fe_UV_del', 'limits': (-0.02, 0.02), 'init_value': 0., 'fixed':True},
+                           {'name':'Fe_Opt_Norm', 'limits': (0., 1E3), 'init_value': 0., 'fixed':True}, 
+                           {'name':'Fe_Opt_FWHM', 'limits': (1E3, 1E4), 'init_value': 3000., 'fixed':True}, 
+                           {'name':'Fe_Opt_del', 'limits': (-0.02, 0.02), 'init_value': 0., 'fixed':True},
+                           {'name':'Balmer_norm', 'limits': (0., 1), 'init_value': 0., 'fixed':True}, 
+                           {'name':'Balmer_Te', 'limits': (1E3, 5E4), 'init_value': 10000., 'fixed':True}, 
+                           {'name':'Balmer_tau', 'limits': (0.1, 4.), 'init_value': 0.2, 'fixed':True}]
+                           
+            self.conti_header = np.array([i['name'] for i in tmp_parinfo])
 
+            params = Parameters()
+            for pars in tmp_parinfo:
+                params.add(pars['name'], value=pars['init_value'], min=pars['limits'][0], max=pars['limits'][1], vary=not pars['fixed'])
+                
+            if self.useFe:
+                params['Fe_UV_Norm'].value = 1E-4
+                params['Fe_Opt_Norm'].value = 1E-4
+                Fe_params_list = ['Fe_UV_Norm', 'Fe_UV_FWHM', 'Fe_UV_del', 'Fe_Opt_Norm', 'Fe_Opt_FWHM', 'Fe_Opt_del']
+                for i in Fe_params_list:
+                    params[i].vary=True
+            if self.useBalmer:
+                params['Balmer_norm'] = 1E-4
+                Balmer_params_list = ['Balmer_norm', 'Balmer_Te', 'Balmer_tau']
+                for i in Balmer_params_list:
+                    params[i].vary=True
+
+            #params.pretty_print()
+            
             print('Fitting Continuum...')
             print()
-            fitobj = kmpfit.Fitter(residuals=self.conti_residuals, data=(lams, flux, eflux, self.contiWindow))
-            fitobj.parinfo = tmp_parinfo
-            fitobj.fit(params0=init_params)
-            print("Best-fit parameters: ", fitobj.params)
-            print("Iterations:               ", fitobj.niter)
-            print("Reduced Chi^2:              ", fitobj.rchi2_min)
-            #print("Covariance Errors:           ", fitobj.xerror)
-            print("Std Errors:          ", fitobj.stderr)
+            result = minimize(self.conti_residuals, params, args=[(lams, flux, eflux, self.contiWindow)])
+            fitted_params = result.params
+            fitted_values = fitted_params.valuesdict()
+            fitted_array = np.array(list(fitted_values.values()))
+            #report_fit(result)
+            
+            print("Best-fit parameters:  ", fitted_array)
+            print("Function Evaluations: ", result.nfev)
+            print("Reduced Chi^2:        ", result.redchi)
             print()
 
-            self.conti_bestfit = fitobj.params
-            conti_stderrs = fitobj.stderr
+            self.conti_bestfit = fitted_array
+
 
 
             ################
@@ -332,18 +355,22 @@ class PyQSpecFit():
             sigma_highs = pdata_lines['Sigma_high']
 
             # SkewNorm Fitting
-            init_params = []
             init_parinfo = []
             self.line_header = ['Skew', 'Sigma', 'Norm', 'Wavelength']
 
-            for index, line in enumerate(line_names):
+            for index, (lname, wave, norm, shift, slow, shigh) in enumerate(zip(line_names,line_wave,line_norms,line_shifts,sigma_lows,sigma_highs)):
                 # Line Parameters: Skew, Scale, Norm, Central Wavelength
-                line_init_params = [0., sigma_lows[index], line_norms[index], line_wave[index]+self.globalLineShift]
-                line_parinfo = [{'fixed': True}, {'limits': (sigma_lows[index], sigma_highs[index])}, {'limits': (0., 1E2)}, 
-                                {'limits': (line_wave[index]+self.globalLineShift-line_shifts[index], line_wave[index]+self.globalLineShift+line_shifts[index])}]
-                init_params += line_init_params
+                line_parinfo = [{'name':'Skew_'+str(index), 'limits': (-10., 10.), 'init_value': 0., 'fixed': True}, 
+                                {'name':'Sigma_'+str(index), 'limits': (slow, shigh), 'init_value': (slow+shigh)/2., 'fixed':False}, 
+                                {'name':'Norm_'+str(index), 'limits': (-1E-4, 1E2), 'init_value': norm, 'fixed':False}, 
+                                {'name':'Wavelength_'+str(index), 'limits': (wave+self.globalLineShift-shift, wave+self.globalLineShift+shift), 'init_value':wave, 'fixed':False}]
                 init_parinfo += line_parinfo
 
+            params = Parameters()
+            for pars in init_parinfo:
+                params.add(pars['name'], value=pars['init_value'], min=pars['limits'][0], max=pars['limits'][1], vary=not pars['fixed'])
+                
+            #params.pretty_print()
             xx, yy, e_yy = lams, residual_flux, eflux
 
             if self.clipSigma > 0:
@@ -351,20 +378,20 @@ class PyQSpecFit():
                 xx, yy, e_yy = np.array(xx)[mask], np.array(yy)[mask], np.array(e_yy)[mask]
                 xx, yy, e_yy = self.sigma_mask_buffer(self.clipBoxWidth, self.clipSigma, xx, yy, e_yy, self.clipBufferWidth)
 
-            fitobj = kmpfit.Fitter(residuals=self.residual_line, data=(xx, yy, e_yy, self.lineWindow))
-            fitobj.parinfo = init_parinfo
-            fitobj.fit(params0=init_params)
-            print("Best-fit parameters: ", fitobj.params)
-            print("Iterations:               ", fitobj.niter)
-            print("Reduced Chi^2:              ", fitobj.rchi2_min)
-            #print("Covariance Errors:           ", fitobj.xerror)
-            print("Std Errors:          ", fitobj.stderr)
+            result = minimize(self.residual_line, params, args=[(xx, yy, e_yy, self.lineWindow)])
+            fitted_params = result.params
+            fitted_values = fitted_params.valuesdict()
+            fitted_array = np.array(list(fitted_values.values()))
+            #report_fit(result)
+            
+            print("Best-fit parameters:  ", fitted_array)
+            print("Function Evaluations: ", result.nfev)
+            print("Reduced Chi^2:        ", result.redchi)
             print()
+            
+            line_bestfit = fitted_array
 
-            line_bestfit = fitobj.params
-            line_stderrs = fitobj.stderr
-
-            self.out_line_res(lams, line_bestfit, line_stderrs, line_names)
+            self.out_line_res(lams, line_bestfit, line_names)
 
     
 
@@ -780,8 +807,9 @@ class PyQSpecFit():
         xx, yy, e_yy, windows = np.array(data, dtype="object")
         mask = self.create_mask_window(xx, windows)
         conti_xdata, conti_ydata, econti_ydata = np.array(xx)[mask], np.array(yy)[mask], np.array(e_yy)[mask]
-        conti = self.eval_conti_all(p, xx)[mask]
-        return (conti_ydata - conti)/econti_ydata
+        pp = np.array(list(p.valuesdict().values()))
+        conti = self.eval_conti_all(pp, xx)[mask]
+        return (conti_ydata-conti)/econti_ydata
 
     def eval_PL(self, p, xx):
         f_pl = p[0] * (np.array(xx) / 3000.0) ** p[1]
@@ -863,11 +891,7 @@ class PyQSpecFit():
         f_Fe_Balmer = self.Fe_flux(p[5:8], xx, self.fe_ops[self.Fe_opt_ind], self.init_fe_op_fwhms[self.Fe_opt_ind])  # iron flux for balmer line region
         f_Balmer = self.Balmer_conti(p[8:11], xx)
 
-        yval = f_pl
-        if self.useFe:
-            yval += f_Fe_MgII + f_Fe_Balmer
-        if self.useBalmer:
-            yval += f_Balmer
+        yval = f_pl + f_Fe_MgII + f_Fe_Balmer + f_Balmer
         return yval
 
         ########################
@@ -883,7 +907,8 @@ class PyQSpecFit():
         xx, yy, e_yy, windows = np.array(data, dtype="object")
         mask = self.create_mask_window(xx, windows)
         xx, yy, e_yy = np.array(xx)[mask], np.array(yy)[mask], np.array(e_yy)[mask]
-        line_result = self.eval_all_lines(p, xx)
+        pp = np.array(list(p.valuesdict().values()))
+        line_result = self.eval_all_lines(pp, xx)
 
         return (yy - line_result)/e_yy
 
@@ -905,7 +930,7 @@ class PyQSpecFit():
             line_result += np.array(line_res)
         return line_result
 
-    def out_line_res(self, lams, p, ep, line_names):
+    def out_line_res(self, lams, p, line_names):
         num_line_params = len(self.line_header)
         num_lines = int(len(p)/num_line_params)
         print('Formatted Line Parameters:')

@@ -297,7 +297,7 @@ class PyQSpecFit():
                            {'name':'Fe_Opt_Norm', 'limits': (0., 1E3), 'init_value': 0., 'fixed':True}, 
                            {'name':'Fe_Opt_FWHM', 'limits': (1E3, 1E4), 'init_value': 3000., 'fixed':True}, 
                            {'name':'Fe_Opt_del', 'limits': (-0.02, 0.02), 'init_value': 0., 'fixed':True},
-                           {'name':'Balmer_norm', 'limits': (0., 1), 'init_value': 0., 'fixed':True}, 
+                           {'name':'Balmer_norm', 'limits': (0., 10.), 'init_value': 0., 'fixed':True}, 
                            {'name':'Balmer_Te', 'limits': (1E3, 5E4), 'init_value': 10000., 'fixed':True}, 
                            {'name':'Balmer_tau', 'limits': (0.1, 4.), 'init_value': 0.2, 'fixed':True}]
                            
@@ -699,7 +699,7 @@ class PyQSpecFit():
     ###########
     
     def strToArray(self, inputStr):
-        outArray = np.array([i.split('-') for i in inputStr.split('|')]).astype(np.float)
+        outArray = np.array([i.split('-') for i in inputStr.split('|')]).astype(np.float64)
         return outArray
 
     def create_mask_window(self, lams, windows):
@@ -866,8 +866,8 @@ class PyQSpecFit():
 
         if pp[0] > 0:
             lambda_BE = 3646.  # A
-            bb = BlackBody(pp[1]*u.K, 1*u.erg/(u.cm**2*u.s*u.AA*u.sr))  
-            bbflux = 1E-8*bb(xval*u.AA)*(np.pi*u.sr) # in units of ergs/cm2/s/A
+            bb = BlackBody(pp[1]*u.K)  
+            bbflux = 1E-8*bb(xval*u.AA)*(np.pi*u.sr)*(con.c*1E10*u.AA*u.Hz)/(xval*u.AA)**2 # in units of ergs/cm2/s/A
             tau = pp[2]*(xval/lambda_BE)**3
             result = pp[0]*bbflux.value*(1.-np.exp(-tau))
             ind = np.where(xval > lambda_BE, True, False)

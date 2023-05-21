@@ -1,6 +1,6 @@
 # PyQSpecFit: Line modelling code for QSOs
 
-Please use tutorial.ipynb as a guide.
+Please use __[Tutorial.ipynb](https://github.com/samlaihei/PyQSpecFit/blob/main/Tutorial.ipynb)__ as a guide.
 
 PyQSpecFit is a user-friendly and flexible code designed for modelling emission features in QSO spectra or continuum-subtracted spectra. 
 

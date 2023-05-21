@@ -393,7 +393,16 @@ class PyQSpecFit():
 
             self.out_line_res(lams, line_bestfit, line_names)
 
-    
+    def evalFile(self, file):
+        pdata = pd.read_csv(file)
+        for ind, line_path in enumerate(pdata['LineFile'].to_numpy()):
+            runName = pdata['runName'].to_numpy()[ind]
+            paramFile = 'Line_Params/'+runName+'.csv'
+            z = float(pdata['redshift'].to_numpy()[ind])
+            lineCompInd = int(pdata['lineComplexInd'].to_numpy()[ind])
+            
+            self.evalLineProperties(line_path, paramFile, z, lineCompInd=lineCompInd)
+
 
     def evalLineProperties(self, lineFile, fitFile, redshift, monoLumAngstrom=3000.,
                            lamWindow=[1200, 8000], lineCompInd=0,
@@ -512,6 +521,24 @@ class PyQSpecFit():
         pdata.to_csv(outDir+outName+'.csv', index=False)
     
         return [res_props_header, res_props, res_props_err]
+        
+    def plotFile(self, file):
+        pdata = pd.read_csv(file)
+        for ind, line_path in enumerate(pdata['LineFile'].to_numpy()):
+            runName = pdata['runName'].to_numpy()[ind]
+            dataFile = pdata['DataFile'].to_numpy()[ind]
+            paramFile = 'Line_Params/'+runName+'.csv'
+            z = float(pdata['redshift'].to_numpy()[ind])
+            plotWindow = self.strToArray(pdata['plotWindow'].to_numpy()[ind])[0]
+
+            # Create plots #
+            fig, axs = plt.subplots(2,1, figsize=(8, 6), gridspec_kw=dict(height_ratios=[3,1], width_ratios=[1]), sharex=True)
+            plt.subplots_adjust(wspace= 0.30, hspace= 0.00)
+            self.plotLineFits(axs[0], axs[1], line_path, dataFile, paramFile, z, plotWindow=plotWindow)
+            plt.savefig('Fit_Figs/'+runName, dpi=200, bbox_inches='tight', facecolor='white', transparent=False)
+            plt.clf()
+            plt.close()
+
     
     def plotLineFits(self, data_ax, resid_ax, lineFile, dataFile, fitFile, redshift,
                      plotWindow=[1200, 8000], dataInd=0, lineCompInd=-1,

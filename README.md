@@ -1,6 +1,14 @@
-# PyQSpecFit
+# PyQSpecFit: Line modelling code for QSOs
 
-Use example.py as a guide. 
+Please use __[Tutorial.ipynb](https://github.com/samlaihei/PyQSpecFit/blob/main/Tutorial.ipynb)__ as a guide.
+
+PyQSpecFit is a user-friendly and flexible code designed for modelling emission features in QSO spectra or continuum-subtracted spectra. 
+
+The key features of this code are:
+-  Fit the QSO continuum with a combined pseudo-continuum model composed of a power-law, Balmer continuum, and FeII flux. We include four main semi-empirical and empirical FeII templates.
+-  Fit line complexes with a user-defined number of broad and narrow Gaussians profiles. 
+-  Measure properties of the modelled lines (integrated flux, EW, FWHM, line dispersion, peak, wavelength shift, etc). Realistic uncertainties can be obtained by using the error spectrum to resample and re-fit the data.
+-  Plot the data with the modelled continuum and emission-line profiles. 
 
 ## Cite this code
 

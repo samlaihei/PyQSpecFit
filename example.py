@@ -1,36 +1,35 @@
-# Example
+# Example of running PyQSpecFit from special parameter file
 import PyQSpecFit
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 
-
-
-# Continuum Fitting Windows #
-conti_windows = np.array([[1973., 1983.], [2060., 2340.], [2600., 2740.], [2840., 3100.]])
-
-# Filepath with Lines Definition #
-line_path = 'Lines/Lines_MgII.csv'
-
-# Line Fitting Windows #
-line_fit_MgII = [[2750., 2850.]]
-
+file = 'Run_Files/runFile.csv'
+pdata = pd.read_csv(file)
 
 example = PyQSpecFit.PyQSpecFit()
 
 # Perform fits #
-example.runFit(line_path, conti_windows, line_fit_MgII, N_fits = 10, useFe=True)
-
-# Evaluate line #
-example.evalLineProperties(line_path, 'Line_Params/example.csv', 0.83, lineCompInd=0)
-
-# Create plots #
-fig, axs = plt.subplots(2,1, figsize=(8, 6), gridspec_kw=dict(height_ratios=[3,1], width_ratios=[1]), sharex=True)
-plt.subplots_adjust(wspace= 0.30, hspace= 0.00)
-example.plotLineFits(axs[0], axs[1], line_path, 'data/example.csv', 'Line_Params/example.csv', 0.83, plotWindow=[2500, 3100])
-plt.savefig('Fit_Figs/example.png', dpi=200, bbox_inches='tight')
+example.runFile(file)
 
 
+for ind, line_path in enumerate(pdata['LineFile'].to_numpy()):
+    runName = pdata['runName'].to_numpy()[ind]
+    dataFile = pdata['DataFile'].to_numpy()[ind]
+    paramFile = 'Line_Params/'+runName+'.csv'
+    z = float(pdata['redshift'].to_numpy()[ind])
+    lineCompInd = int(pdata['lineComplexInd'].to_numpy()[ind])
+    plotWindow = example.strToArray(pdata['plotWindow'].to_numpy()[ind])[0]
+    
+    # Evaluate line #
+    example.evalLineProperties(line_path, paramFile, z, lineCompInd=lineCompInd)
+
+    # Create plots #
+    fig, axs = plt.subplots(2,1, figsize=(8, 6), gridspec_kw=dict(height_ratios=[3,1], width_ratios=[1]), sharex=True)
+    plt.subplots_adjust(wspace= 0.30, hspace= 0.00)
+    example.plotLineFits(axs[0], axs[1], line_path, dataFile, paramFile, z, plotWindow=plotWindow)
+    plt.savefig('Fit_Figs/'+runName, dpi=200, bbox_inches='tight')
+    plt.clf()
+    plt.close()
 
 
 

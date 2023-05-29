@@ -297,7 +297,7 @@ class PyQSpecFit():
                            {'name':'Fe_Opt_Norm', 'limits': (0., 1E3), 'init_value': 0., 'fixed':True}, 
                            {'name':'Fe_Opt_FWHM', 'limits': (1E3, 1E4), 'init_value': 3000., 'fixed':True}, 
                            {'name':'Fe_Opt_del', 'limits': (-0.02, 0.02), 'init_value': 0., 'fixed':True},
-                           {'name':'Balmer_norm', 'limits': (0., 1), 'init_value': 0., 'fixed':True}, 
+                           {'name':'Balmer_norm', 'limits': (0., 10.), 'init_value': 0., 'fixed':True}, 
                            {'name':'Balmer_Te', 'limits': (1E3, 5E4), 'init_value': 10000., 'fixed':True}, 
                            {'name':'Balmer_tau', 'limits': (0.1, 4.), 'init_value': 0.2, 'fixed':True}]
                            
@@ -314,7 +314,7 @@ class PyQSpecFit():
                 for i in Fe_params_list:
                     params[i].vary=True
             if self.useBalmer:
-                params['Balmer_norm'] = 1E-4
+                params['Balmer_norm'].value = 1E-4
                 Balmer_params_list = ['Balmer_norm', 'Balmer_Te', 'Balmer_tau']
                 for i in Balmer_params_list:
                     params[i].vary=True
@@ -393,7 +393,16 @@ class PyQSpecFit():
 
             self.out_line_res(lams, line_bestfit, line_names)
 
-    
+    def evalFile(self, file):
+        pdata = pd.read_csv(file)
+        for ind, line_path in enumerate(pdata['LineFile'].to_numpy()):
+            runName = pdata['runName'].to_numpy()[ind]
+            paramFile = 'Line_Params/'+runName+'.csv'
+            z = float(pdata['redshift'].to_numpy()[ind])
+            lineCompInd = int(pdata['lineComplexInd'].to_numpy()[ind])
+            
+            self.evalLineProperties(line_path, paramFile, z, lineCompInd=lineCompInd)
+
 
     def evalLineProperties(self, lineFile, fitFile, redshift, monoLumAngstrom=3000.,
                            lamWindow=[1200, 8000], lineCompInd=0,
@@ -512,6 +521,24 @@ class PyQSpecFit():
         pdata.to_csv(outDir+outName+'.csv', index=False)
     
         return [res_props_header, res_props, res_props_err]
+        
+    def plotFile(self, file):
+        pdata = pd.read_csv(file)
+        for ind, line_path in enumerate(pdata['LineFile'].to_numpy()):
+            runName = pdata['runName'].to_numpy()[ind]
+            dataFile = pdata['DataFile'].to_numpy()[ind]
+            paramFile = 'Line_Params/'+runName+'.csv'
+            z = float(pdata['redshift'].to_numpy()[ind])
+            plotWindow = self.strToArray(pdata['plotWindow'].to_numpy()[ind])[0]
+
+            # Create plots #
+            fig, axs = plt.subplots(2,1, figsize=(8, 6), gridspec_kw=dict(height_ratios=[3,1], width_ratios=[1]), sharex=True)
+            plt.subplots_adjust(wspace= 0.30, hspace= 0.00)
+            self.plotLineFits(axs[0], axs[1], line_path, dataFile, paramFile, z, plotWindow=plotWindow)
+            plt.savefig('Fit_Figs/'+runName, dpi=200, bbox_inches='tight', facecolor='white', transparent=False)
+            plt.clf()
+            plt.close()
+
     
     def plotLineFits(self, data_ax, resid_ax, lineFile, dataFile, fitFile, redshift,
                      plotWindow=[1200, 8000], dataInd=0, lineCompInd=-1,
@@ -699,7 +726,7 @@ class PyQSpecFit():
     ###########
     
     def strToArray(self, inputStr):
-        outArray = np.array([i.split('-') for i in inputStr.split('|')]).astype(np.float)
+        outArray = np.array([i.split('-') for i in inputStr.split('|')]).astype(np.float64)
         return outArray
 
     def create_mask_window(self, lams, windows):
@@ -864,14 +891,18 @@ class PyQSpecFit():
         # xval = input wavelength, in units of A
         # pp=[norm, Te, tau_BE] -- in units of [--, K, --]
 
-        lambda_BE = 3646.  # A
-        bbflux = BlackBody(pp[1]*u.K, 1*u.erg/(u.cm**2*u.s*u.AA*u.sr))  
-        bbflux = bbflux(xval*u.AA).value*np.pi # in units of ergs/cm2/s/A
-        tau = pp[2]*(xval/lambda_BE)**3
-        result = pp[0]*bbflux*(1.-np.exp(-tau))
-        ind = np.where(xval > lambda_BE, True, False)
-        if ind.any() == True:
-            result[ind] = 0.
+        if pp[0] > 0:
+            lambda_BE = 3646.  # A
+            bb = BlackBody(pp[1]*u.K)  
+            bbflux = 1E-8*bb(xval*u.AA)*(np.pi*u.sr)*(con.c*1E10*u.AA*u.Hz)/(xval*u.AA)**2 # in units of ergs/cm2/s/A
+            tau = pp[2]*(xval/lambda_BE)**3
+            result = pp[0]*bbflux.value*(1.-np.exp(-tau))
+            ind = np.where(xval > lambda_BE, True, False)
+            if ind.any() == True:
+                result[ind] = 0.
+        else:
+            result = np.array([0 for i in xval])
+        
         return result
 
 

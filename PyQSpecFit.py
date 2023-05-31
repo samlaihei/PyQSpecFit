@@ -70,6 +70,7 @@ from specutils.analysis import fwhm as specutils_fwhm
 from specutils.manipulation import gaussian_smooth
 
 
+
 # Uncertainty
 from uncertainties import ufloat
 from uncertainties.umath import *
@@ -78,6 +79,8 @@ from uncertainties.umath import *
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter, MultipleLocator, AutoMinorLocator
 
+# QSOGen
+from qsosed import Quasar_sed
 
 
 class PyQSpecFit():
@@ -275,10 +278,11 @@ class PyQSpecFit():
                 flux = np.array([i.value for i in flux])
 
 
+            
             #################
             # Fit Continuum #
             #################
-
+            qso_resid = flux
             """
             Continuum components described by 8 parameters
              pp[0]: norm_factor for continuum f_lambda = (lambda/3000.0)^{-alpha}
@@ -324,7 +328,7 @@ class PyQSpecFit():
             
             print('Fitting Continuum...')
             print()
-            result = minimize(self.conti_residuals, params, args=[(lams, flux, eflux, self.contiWindow)])
+            result = minimize(self.conti_residuals, params, args=[(lams, qso_resid, eflux, self.contiWindow)])
             fitted_params = result.params
             fitted_values = fitted_params.valuesdict()
             fitted_array = np.array(list(fitted_values.values()))
@@ -634,7 +638,10 @@ class PyQSpecFit():
                 continue
             temp_line = self.eval_line_full([0, fwhm, norm, wav], lams)*rescale_fac
             current_inset_window = np.clip(lams[np.where(temp_line > 0.01*np.nanmax(temp_line))], plotWindow[0], plotWindow[1])
-            current_inset_window = np.array([np.nanmin(current_inset_window), np.nanmax(current_inset_window)])
+            if len(current_inset_window) > 0:
+                current_inset_window = np.array([np.nanmin(current_inset_window), np.nanmax(current_inset_window)])
+            else:
+                current_inset_window = np.copy(plotWindow)
             if line_index in line_indices or lineCompInd < 0:
                 dashed_color = 'r'
             else:
@@ -650,8 +657,10 @@ class PyQSpecFit():
             tot_line = self.sum_nan_arrays(tot_line, profile)
 
         current_inset_window = np.clip(lams[np.where(tot_line > 0.01*np.nanmax(tot_line))], plotWindow[0], plotWindow[1])
-        current_inset_window = np.array([np.nanmin(current_inset_window), np.nanmax(current_inset_window)])
-
+        if len(current_inset_window) > 0:
+            current_inset_window = np.array([np.nanmin(current_inset_window), np.nanmax(current_inset_window)])
+        else:
+            current_inset_window = np.copy(plotWindow)
         data_ax.tick_params(which='both',axis='both', direction='in', bottom=True, top=True, right=True, labelleft=True, labelbottom=False)
         data_ax.plot(lams[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])], 
                              data_flux[np.logical_and(lams>plotWindow[0], lams<plotWindow[1])],
@@ -831,6 +840,17 @@ class PyQSpecFit():
         #############
         # Continuum #
         #############
+    def evalQSOGen(self, pp, xx):
+        model = Quasar_sed(z=pp[0], LogL3000=pp[1], wavlen=xx, ebv=pp[2], M_i=pp[3], tbb=pp[4], 
+                           bbnorm=pp[5], scal_emline=pp[6], beslope=pp[7], fragal=pp[8], gplind=pp[9])
+        return model
+
+    def QSOGen_resid(self, p, data):
+        xx, yy, e_yy = data
+        pp = np.array(list(p.valuesdict().values()))
+        model = self.evalQSOGen(pp, xx)
+        return (yy-model.flux)/e_yy
+        
     def conti_residuals(self, p, data):
         xx, yy, e_yy, windows = np.array(data, dtype="object")
         mask = self.create_mask_window(xx, windows)

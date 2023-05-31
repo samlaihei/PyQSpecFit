@@ -14,16 +14,16 @@ Edit 2022 May: update reference to published paper 2021MNRAS.508..737T
 """
 import numpy as np
 
-f1 = 'qsosed_emlines_20210625.dat'
+f1 = 'qsosed/qsosed_emlines_20210625.dat'
 emline_template = np.genfromtxt(f1, unpack=True)
 # wav, median_emlines, continuum, peaky_line, windy_lines, narrow_lines
 
-f2 = 'S0_template_norm.sed'
+f2 = 'swire_library/S0_template_norm.sed'
 galaxy_template = np.genfromtxt(f2, unpack=True)
 # S0 galaxy template from SWIRE
 # https://ui.adsabs.harvard.edu/abs/2008MNRAS.386..697R/
 
-f3 = 'pl_ext_comp_03.sph'
+f3 = 'qsosed/pl_ext_comp_03.sph'
 reddening_curve = np.genfromtxt(f3, unpack=True)
 # Extinction curve, format: [lambda, E(lambda-V)/E(B-V)]
 # Recall flux_reddened(lambda) = flux(lambda)*10^(-A(lambda)/2.5)

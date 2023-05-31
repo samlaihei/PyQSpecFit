@@ -61,7 +61,7 @@ class HostDecomp():
         
         tmp_parinfo = [{'name':'z', 'limits': (0, 1E3), 'init_value': self.z, 'fixed':True}, 
                        {'name':'LogL3000', 'limits': (40, 50), 'init_value': 45., 'fixed':False}, 
-                       {'name':'ebv', 'limits': (0., 5.), 'init_value': 0.01, 'fixed':False}, 
+                       {'name':'ebv', 'limits': (-1E-5., 5.), 'init_value': 0.01, 'fixed':False}, 
                        {'name':'M_i', 'limits': (-21, -29), 'init_value': -27, 'fixed':False}, 
                        {'name':'tbb', 'limits': (100, 1E4), 'init_value': 3000., 'fixed':False}, 
                        {'name':'bbnorm', 'limits': (0, 1E3), 'init_value': 1., 'fixed':False},

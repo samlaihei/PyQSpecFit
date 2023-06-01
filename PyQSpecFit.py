@@ -328,7 +328,7 @@ class PyQSpecFit():
             
             print('Fitting Continuum...')
             print()
-            result = minimize(self.conti_residuals, params, args=[(lams, qso_resid, eflux, self.contiWindow)])
+            result = minimize(self.conti_residuals, params, args=[(lams, qso_resid, eflux, self.contiWindow)], calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
             fitted_params = result.params
             fitted_values = fitted_params.valuesdict()
             fitted_array = np.array(list(fitted_values.values()))
@@ -383,7 +383,7 @@ class PyQSpecFit():
                 xx, yy, e_yy = np.array(xx)[mask], np.array(yy)[mask], np.array(e_yy)[mask]
                 xx, yy, e_yy = self.sigma_mask_buffer(self.clipBoxWidth, self.clipSigma, xx, yy, e_yy, self.clipBufferWidth)
 
-            result = minimize(self.residual_line, params, args=[(xx, yy, e_yy, self.lineWindow)])
+            result = minimize(self.residual_line, params, args=[(xx, yy, e_yy, self.lineWindow)], calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
             fitted_params = result.params
             fitted_values = fitted_params.valuesdict()
             fitted_array = np.array(list(fitted_values.values()))

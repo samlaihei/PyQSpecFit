@@ -33,14 +33,11 @@ from scipy.linalg import norm
 from scipy.ndimage import gaussian_filter1d
 
 # Template files:
-GAL_TEMPS = [  # 'swire_library/Ell2_template_norm.sed',
-    # 'swire_library/Ell5_template_norm.sed',
-    # 'swire_library/Ell13_template_norm.sed',
-    'swire_library/S0_template_norm.sed',
-    'swire_library/Sa_template_norm.sed',
-    'swire_library/Sb_template_norm.sed',
-    'swire_library/Sc_template_norm.sed',
-    'swire_library/Sd_template_norm.sed']
+GAL_TEMPS = ['swire_library/S0_template_norm.sed',
+             'swire_library/Sa_template_norm.sed',
+             'swire_library/Sb_template_norm.sed',
+             'swire_library/Sc_template_norm.sed',
+             'swire_library/Sd_template_norm.sed']
 WAV_GAL, _ = np.genfromtxt(GAL_TEMPS[0], unpack=True)
 LEN_SED = len(WAV_GAL)
 
@@ -84,21 +81,22 @@ class HostDecomp():
                        {'name': 'beslope', 'limits': (0, 1), 'init_value': 0.2, 'fixed': False},
                        {'name': 'fragal', 'limits': (0, 1), 'init_value': 0.244, 'fixed': False},
                        {'name': 'gplind', 'limits': (0., 1.), 'init_value': 0.684, 'fixed': False},
-                       # {'name': 'ell2', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
-                       # {'name': 'ell5', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
-                       # {'name': 'ell13', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
                        {'name': 's0', 'limits': (0., 1.), 'init_value': 1.0, 'fixed': False},
                        {'name': 'sa', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
                        {'name': 'sb', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
                        {'name': 'sc', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
                        {'name': 'sd', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
-                       {'name': 'blur', 'limits': (1E-2, 5), 'init_value': 1, 'fixed': False}]
+                       {'name': 'blur', 'limits': (1E-5, 4), 'init_value': 1, 'fixed': False}]
+
         params = Parameters()
         for pars in tmp_parinfo:
-            params.add(pars['name'], value=pars['init_value'], min=pars['limits'][0], max=pars['limits'][1],
+            params.add(pars['name'], value=pars['init_value'],
+                       min=pars['limits'][0], max=pars['limits'][1],
                        vary=not pars['fixed'])
 
-        result = minimize(self.QSOGen_resid, params, args=[(lams, flux, eflux)], calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
+        result = minimize(self.QSOGen_resid, params, args=[(lams, flux, eflux)],
+                          calc_covar=False, xtol=1E-8, ftol=1E-8,
+                          gtol=1E-8)
         fitted_params = result.params
         fitted_values = fitted_params.valuesdict()
         fitted_array = np.array(list(fitted_values.values()))
@@ -119,11 +117,9 @@ class HostDecomp():
             _, flx_tmp = np.genfromtxt(f, unpack=True)
             gal_tmp = gal_tmp + (pp[10 + ind] * flx_tmp)
 
-        # print(gal_tmp)
+        # Gaussian broadening
         gal_tmp = gaussian_filter1d(gal_tmp, pp[-1])
-        # print(np.isnan(np.sum(gal_tmp)), np.argwhere(np.isnan(gal_tmp)))
         gal_tmp = gal_tmp / norm(gal_tmp)  # normalise
-        # print(np.isnan(np.sum(gal_tmp)))
 
         model = Quasar_sed(z=pp[0], LogL3000=pp[1], wavlen=xx, ebv=pp[2], M_i=pp[3], tbb=pp[4],
                            bbnorm=pp[5], scal_emline=pp[6], beslope=pp[7], fragal=pp[8], gplind=pp[9],

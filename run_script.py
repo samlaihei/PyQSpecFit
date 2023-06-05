@@ -2,20 +2,21 @@
 import PyQSpecFit
 import pandas as pd
 import matplotlib.pyplot as plt
+import sys
 
-file = 'Run_Files/run_v2.csv'
+file = sys.argv[1]  # 'Run_Files/run_v2.csv'
 r_file = pd.read_csv(file)
 
 example = PyQSpecFit.PyQSpecFit()
 
 # Perform fits #
-# example.runFile(file)
+example.runFile(file)
 
 line_name = ["Hbeta_br", "Hbeta_na", "OIII_left", "OIII_right"]
 for _, pdata in r_file.iterrows():
     line_path = pdata['LineFile']
     runName = pdata['runName']
-    print(runName)
+    print(f"Evaluating {runName}")
     dataFile = pdata['DataFile']
     paramFile = 'Line_Params/' + runName + '.csv'
     z = float(pdata['redshift'])
@@ -33,12 +34,15 @@ for _, pdata in r_file.iterrows():
 
     new_df.to_csv(f"Evaluated_Lines/{runName}.csv", index=False)
 
-    if not runName in ['g1031573-184633_WiFeS', 'g1328311-490906_WiFeS']:
+    try:
         # Create plots #
         plotWindow = example.strToArray(pdata['plotWindow'])[0]
-        fig, axs = plt.subplots(2, 1, figsize=(8, 6), gridspec_kw=dict(height_ratios=[3, 1], width_ratios=[1]), sharex=True)
+        fig, axs = plt.subplots(2, 1, figsize=(8, 6), gridspec_kw=dict(height_ratios=[3, 1], width_ratios=[1]),
+                                sharex=True)
         plt.subplots_adjust(wspace=0.30, hspace=0.00)
         example.plotLineFits(axs[0], axs[1], line_path, dataFile, paramFile, z, plotWindow=plotWindow)
         plt.savefig('Fit_Figs/' + runName, dpi=200, bbox_inches='tight')
         plt.clf()
         plt.close()
+    except:
+        print(f"Could not plot {runName}")

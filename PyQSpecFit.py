@@ -328,7 +328,7 @@ class PyQSpecFit():
             
             print('Fitting Continuum...')
             print()
-            result = minimize(self.conti_residuals, params, args=[(lams, qso_resid, eflux, self.contiWindow)])
+            result = minimize(self.conti_residuals, params, args=[(lams, qso_resid, eflux, self.contiWindow)], calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
             fitted_params = result.params
             fitted_values = fitted_params.valuesdict()
             fitted_array = np.array(list(fitted_values.values()))
@@ -367,7 +367,7 @@ class PyQSpecFit():
                 # Line Parameters: Skew, Scale, Norm, Central Wavelength
                 line_parinfo = [{'name':'Skew_'+str(index), 'limits': (-10., 10.), 'init_value': 0., 'fixed': True}, 
                                 {'name':'Sigma_'+str(index), 'limits': (slow, shigh), 'init_value': (slow+shigh)/2., 'fixed':False}, 
-                                {'name':'Norm_'+str(index), 'limits': (-1E-4, 1E2), 'init_value': norm, 'fixed':False}, 
+                                {'name':'Norm_'+str(index), 'limits': (0, 1E2), 'init_value': norm+1E-4, 'fixed':False},
                                 {'name':'Wavelength_'+str(index), 'limits': (wave+self.globalLineShift-shift, wave+self.globalLineShift+shift), 'init_value':wave, 'fixed':False}]
                 init_parinfo += line_parinfo
 
@@ -383,7 +383,7 @@ class PyQSpecFit():
                 xx, yy, e_yy = np.array(xx)[mask], np.array(yy)[mask], np.array(e_yy)[mask]
                 xx, yy, e_yy = self.sigma_mask_buffer(self.clipBoxWidth, self.clipSigma, xx, yy, e_yy, self.clipBufferWidth)
 
-            result = minimize(self.residual_line, params, args=[(xx, yy, e_yy, self.lineWindow)])
+            result = minimize(self.residual_line, params, args=[(xx, yy, e_yy, self.lineWindow)], calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
             fitted_params = result.params
             fitted_values = fitted_params.valuesdict()
             fitted_array = np.array(list(fitted_values.values()))

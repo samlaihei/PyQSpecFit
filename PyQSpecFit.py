@@ -366,9 +366,9 @@ class PyQSpecFit():
             for index, (lname, wave, norm, shift, slow, shigh) in enumerate(zip(line_names,line_wave,line_norms,line_shifts,sigma_lows,sigma_highs)):
                 # Line Parameters: Skew, Scale, Norm, Central Wavelength
                 line_parinfo = [{'name':'Skew_'+str(index), 'limits': (-10., 10.), 'init_value': 0., 'fixed': True}, 
-                                {'name':'Sigma_'+str(index), 'limits': (slow, shigh), 'init_value': (slow+shigh)/2.+index*1E-6, 'fixed':False}, 
+                                {'name':'Sigma_'+str(index), 'limits': (slow, shigh), 'init_value': (slow+shigh)/2.+(-1)**(index)*index*1E-6, 'fixed':False}, 
                                 {'name':'Norm_'+str(index), 'limits': (0, 1E2), 'init_value': norm+index*1E-6, 'fixed':False}, 
-                                {'name':'Wavelength_'+str(index), 'limits': (wave+self.globalLineShift-shift, wave+self.globalLineShift+shift), 'init_value':wave+index*1E-6, 'fixed':False}]
+                                {'name':'Wavelength_'+str(index), 'limits': (wave+self.globalLineShift-shift, wave+self.globalLineShift+shift), 'init_value':wave+(-1)**(index)*index*1E-6, 'fixed':False}]
                 init_parinfo += line_parinfo
 
             params = Parameters()

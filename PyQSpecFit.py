@@ -362,7 +362,7 @@ class PyQSpecFit():
             # SkewNorm Fitting
             init_parinfo = []
             self.line_header = ['Skew', 'Sigma', 'Norm', 'Wavelength']
-
+ 
             for index, (lname, wave, norm, shift, slow, shigh) in enumerate(zip(line_names,line_wave,line_norms,line_shifts,sigma_lows,sigma_highs)):
                 # Line Parameters: Skew, Scale, Norm, Central Wavelength
                 line_parinfo = [{'name':'Skew_'+str(index), 'limits': (-10., 10.), 'init_value': 0., 'fixed': True}, 

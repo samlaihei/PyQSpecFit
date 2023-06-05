@@ -98,7 +98,7 @@ class HostDecomp():
             params.add(pars['name'], value=pars['init_value'], min=pars['limits'][0], max=pars['limits'][1],
                        vary=not pars['fixed'])
 
-        result = minimize(self.QSOGen_resid, params, args=[(lams, flux, eflux)])
+        result = minimize(self.QSOGen_resid, params, args=[(lams, flux, eflux)], calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
         fitted_params = result.params
         fitted_values = fitted_params.valuesdict()
         fitted_array = np.array(list(fitted_values.values()))

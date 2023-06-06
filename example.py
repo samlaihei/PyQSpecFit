@@ -4,7 +4,6 @@ import timeit
 
 start = timeit.default_timer()
 
-
 file = 'Run_Files/runFile.csv'
 
 example = PyQSpecFit.PyQSpecFit()

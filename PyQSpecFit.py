@@ -294,15 +294,15 @@ class PyQSpecFit():
              pp[8:11]: norm, Te and Tau_e for the Balmer continuum at <3646 A
             """
         
-            tmp_parinfo = [{'name':'PL_Norm', 'limits': (0, 1E3), 'init_value': 1., 'fixed':False}, 
-                           {'name':'PL_Slope', 'limits': (-5, 3), 'init_value': 0., 'fixed':False}, 
-                           {'name':'Fe_UV_Norm', 'limits': (0., 1E3), 'init_value': 0., 'fixed':True}, 
-                           {'name':'Fe_UV_FWHM', 'limits': (1E3, 1E4), 'init_value': 3000., 'fixed':True}, 
+            tmp_parinfo = [{'name':'PL_Norm', 'limits': (0, 1E4), 'init_value': 1., 'fixed':False}, 
+                           {'name':'PL_Slope', 'limits': (-10, 5), 'init_value': 0., 'fixed':False}, 
+                           {'name':'Fe_UV_Norm', 'limits': (0., 1E4), 'init_value': 1E-6, 'fixed':True}, 
+                           {'name':'Fe_UV_FWHM', 'limits': (1E3, 2E4), 'init_value': 3000., 'fixed':True}, 
                            {'name':'Fe_UV_del', 'limits': (-0.02, 0.02), 'init_value': 0., 'fixed':True},
-                           {'name':'Fe_Opt_Norm', 'limits': (0., 1E3), 'init_value': 0., 'fixed':True}, 
-                           {'name':'Fe_Opt_FWHM', 'limits': (1E3, 1E4), 'init_value': 3000., 'fixed':True}, 
+                           {'name':'Fe_Opt_Norm', 'limits': (0., 1E4), 'init_value': 1E-6, 'fixed':True}, 
+                           {'name':'Fe_Opt_FWHM', 'limits': (1E3, 2E4), 'init_value': 3000., 'fixed':True}, 
                            {'name':'Fe_Opt_del', 'limits': (-0.02, 0.02), 'init_value': 0., 'fixed':True},
-                           {'name':'Balmer_norm', 'limits': (0., 10.), 'init_value': 0., 'fixed':True}, 
+                           {'name':'Balmer_norm', 'limits': (0., 10.), 'init_value': 1E-6, 'fixed':True}, 
                            {'name':'Balmer_Te', 'limits': (1E3, 5E4), 'init_value': 10000., 'fixed':True}, 
                            {'name':'Balmer_tau', 'limits': (0.1, 4.), 'init_value': 0.2, 'fixed':True}]
                            
@@ -366,8 +366,8 @@ class PyQSpecFit():
             for index, (lname, wave, norm, shift, slow, shigh) in enumerate(zip(line_names,line_wave,line_norms,line_shifts,sigma_lows,sigma_highs)):
                 # Line Parameters: Skew, Scale, Norm, Central Wavelength
                 line_parinfo = [{'name':'Skew_'+str(index), 'limits': (-10., 10.), 'init_value': 0., 'fixed': True}, 
-                                {'name':'Sigma_'+str(index), 'limits': (slow, shigh), 'init_value': (slow+shigh)/2.+(-1)**(index)*index*1E-6, 'fixed':False}, 
-                                {'name':'Norm_'+str(index), 'limits': (0, 1E2), 'init_value': norm+index*1E-6, 'fixed':False}, 
+                                {'name':'Sigma_'+str(index), 'limits': (slow, shigh), 'init_value': (slow+shigh)/2.+(-1)**(index)*index*(shigh-slow)/len(line_names), 'fixed':False}, 
+                                {'name':'Norm_'+str(index), 'limits': (0, 1E4), 'init_value': norm+index*1E-6, 'fixed':False}, 
                                 {'name':'Wavelength_'+str(index), 'limits': (wave+self.globalLineShift-shift, wave+self.globalLineShift+shift), 'init_value':wave+(-1)**(index)*index*1E-6, 'fixed':False}]
                 init_parinfo += line_parinfo
 
@@ -926,7 +926,6 @@ class PyQSpecFit():
         
         return result
 
-
     def eval_conti_all(self, p, xx):
         """
         Continuum components described by 14 parameters
@@ -948,7 +947,8 @@ class PyQSpecFit():
 
         ########################
         # General Line Fitting #
-        ########################    
+        ########################   
+    
     def eval_line_full(self, p, xx):
         # p = [Skew, Scale FWHM (km/s), Norm, Central Wavelength]
         scale_AA = self.fwhm_to_angstrom(p[1], p[3])

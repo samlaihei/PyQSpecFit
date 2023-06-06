@@ -10,7 +10,7 @@ r_file = pd.read_csv(file)
 example = PyQSpecFit.PyQSpecFit()
 
 # Perform fits #
-example.runFile(file)
+# example.runFile(file)
 
 line_name = ["Hbeta_br", "Hbeta_na", "OIII_left", "OIII_right"]
 for _, pdata in r_file.iterrows():

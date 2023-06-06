@@ -86,7 +86,7 @@ class HostDecomp():
                        {'name': 'sb', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
                        {'name': 'sc', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
                        {'name': 'sd', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
-                       {'name': 'blur', 'limits': (1E-5, 4), 'init_value': 1, 'fixed': False}]
+                       {'name': 'blur', 'limits': (1E-5, 2), 'init_value': 1, 'fixed': False}]
 
         params = Parameters()
         for pars in tmp_parinfo:

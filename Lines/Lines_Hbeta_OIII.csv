@@ -1,0 +1,9 @@
+Name,Group,Central Wavelength,Init_Norm,Sigma_low,Sigma_high,Allowed_Shift
+Hbeta_br,0,4861,30,510,6000,30
+ ,0,4861,20,510,6000,30
+ ,0,4861,10,510,6000,30
+Hbeta_na,0,4861,30,85,500,10
+OIII_left,0,4959,30,85,500,10
+ ,0,4959,15,85,500,10
+OIII_right,0,5007,30,85,500,10
+ ,0,5007,15,85,500,10

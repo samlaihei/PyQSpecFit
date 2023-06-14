@@ -70,7 +70,6 @@ from specutils.analysis import fwhm as specutils_fwhm
 from specutils.manipulation import gaussian_smooth
 
 
-
 # Uncertainty
 from uncertainties import ufloat
 from uncertainties.umath import *
@@ -1091,6 +1090,21 @@ class PyQSpecFit():
         #mbh = 10**(6.91)*(mono_lum/10**(44))**(0.50) * (line_FWHM/10**3)**2 # Hbeta
         return mbh # in solar masses
 
+    ###################
+    # Post-Processing #
+    ###################
+
+    def resample(self, grid, lams, flux, err):
+        flux, err = spectres.spectres(grid, lams, flux, spec_errs=err, fill=np.nan, verbose=False)
+        return [grid, flux, err]
+        
+    def snr_floor_flux_ceiling(self, floor, ceiling, lams, flux, err):
+        w1 = lams[(flux/err > snr_floor) & (flux < flux_ceiling)]
+        f1 = flux[(flux/err > snr_floor) & (flux < flux_ceiling)]
+        e1 = err[(flux/err > snr_floor) & (flux < flux_ceiling)]
+    
+        return [w1, f1, e1]
+        
 
 
 

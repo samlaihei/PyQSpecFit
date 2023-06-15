@@ -829,11 +829,11 @@ class PyQSpecFit():
         return integrated_flux
         
     def general_med_wav(self, xx, line_yy):
-        line_flux = sum(line_yy)
+        lflux = sum(line_yy)
         summed_flux = 0
         for index, y in enumerate(line_yy):
             summed_flux += y
-            if summed_flux > line_flux/2.:
+            if summed_flux > lflux/2.:
                 med_wav = xx[index]
                 return med_wav
         return 0

@@ -329,7 +329,7 @@ class PyQSpecFit():
             
             print('Fitting Continuum...')
             print()
-            result = minimize(self.conti_residuals, params, args=[(lams, qso_resid, eflux, self.contiWindow)], calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
+            result = minimize(self.conti_residuals, params, args=[(lams, qso_resid, eflux, self.contiWindow)], method='least_squares', calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
             fitted_params = result.params
             fitted_values = fitted_params.valuesdict()
             fitted_array = np.array(list(fitted_values.values()))
@@ -374,7 +374,10 @@ class PyQSpecFit():
 
             params = Parameters()
             for pars in init_parinfo:
-                params.add(pars['name'], value=pars['init_value'], min=pars['limits'][0], max=pars['limits'][1], vary=not pars['fixed'])
+                if 'Wavelength' in pars['name']:
+                    params.add(pars['name'], value=np.log(pars['init_value']), min=np.log(pars['limits'][0]), max=np.log(pars['limits'][1]), vary=not pars['fixed'])
+                else:
+                    params.add(pars['name'], value=pars['init_value'], min=pars['limits'][0], max=pars['limits'][1], vary=not pars['fixed'])
                 
             #params.pretty_print()
             xx, yy, e_yy = lams, residual_flux, eflux
@@ -384,7 +387,7 @@ class PyQSpecFit():
                 xx, yy, e_yy = np.array(xx)[mask], np.array(yy)[mask], np.array(e_yy)[mask]
                 xx, yy, e_yy = self.sigma_mask_buffer(self.clipBoxWidth, self.clipSigma, xx, yy, e_yy, self.clipBufferWidth)
 
-            result = minimize(self.residual_line, params, args=[(xx, yy, e_yy, self.lineWindow)], calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
+            result = minimize(self.residual_line, params, args=[(xx, yy, e_yy, self.lineWindow, init_parinfo)], method='least_squares', calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
             fitted_params = result.params
             fitted_values = fitted_params.valuesdict()
             fitted_array = np.array(list(fitted_values.values()))
@@ -396,6 +399,8 @@ class PyQSpecFit():
             print()
 
             line_bestfit = fitted_array
+            wav_axis = np.array([True if 'Wavelength' in i['name'] else False for i in init_parinfo])
+            line_bestfit[wav_axis] = np.exp(line_bestfit[wav_axis])
 
             self.out_line_res(lams, line_bestfit, line_names)
 
@@ -692,6 +697,7 @@ class PyQSpecFit():
         data_ax.yaxis.set_minor_locator(AutoMinorLocator())
         data_ax.xaxis.set_minor_locator(AutoMinorLocator())
         data_ax.tick_params(labelleft=True)
+        data_ax.set_ylim(data_ax.get_ylim()[0], 1.5*data_ax.get_ylim()[1])
         data_ax.legend(facecolor='white', framealpha=1.0, loc=2, fontsize=12)
         data_ax.set_ylabel(r'$\rm f_{\lambda, \rm{obs}}$ ($10^{-17} \rm erg\;s^{-1}\;cm^{-2}\;\AA^{-1}$)')
 
@@ -957,12 +963,13 @@ class PyQSpecFit():
     
     def residual_line(self, p, data):
         # Data should be residual spectra
-        xx, yy, e_yy, windows = np.array(data, dtype="object")
+        xx, yy, e_yy, windows, parinfo = np.array(data, dtype="object")
         mask = self.create_mask_window(xx, windows)
         xx, yy, e_yy = np.array(xx)[mask], np.array(yy)[mask], np.array(e_yy)[mask]
         pp = np.array(list(p.valuesdict().values()))
+        wav_axis = np.array([True if 'Wavelength' in i['name'] else False for i in parinfo])
+        pp[wav_axis] = np.exp(pp[wav_axis])
         line_result = self.eval_all_lines(pp, xx)
-
         return (yy - line_result)/e_yy
 
 

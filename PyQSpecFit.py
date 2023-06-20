@@ -697,7 +697,7 @@ class PyQSpecFit():
         data_ax.yaxis.set_minor_locator(AutoMinorLocator())
         data_ax.xaxis.set_minor_locator(AutoMinorLocator())
         data_ax.tick_params(labelleft=True)
-        data_ax.set_ylim(data_ax.get_ylim()[0], 1.5*data_ax.get_ylim()[1])
+        #data_ax.set_ylim(data_ax.get_ylim()[0], 1.5*data_ax.get_ylim()[1])
         data_ax.legend(facecolor='white', framealpha=1.0, loc=2, fontsize=12)
         data_ax.set_ylabel(r'$\rm f_{\lambda, \rm{obs}}$ ($10^{-17} \rm erg\;s^{-1}\;cm^{-2}\;\AA^{-1}$)')
 

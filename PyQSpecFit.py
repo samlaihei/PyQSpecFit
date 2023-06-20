@@ -42,6 +42,7 @@
 ###################
 import glob
 import os
+import logging
 
 # Numpy and Pandas and I/O
 import numpy as np
@@ -121,6 +122,12 @@ class PyQSpecFit():
         BV08_opt[:,0], BV08_opt[:,1] = BV08_opt[:,0], BV08_opt[:,1]*10**(-6)
         self.fe_ops = [BG92, T06_opt, P22, BV08_opt]
         self.init_fe_op_fwhms = [1200., 1200., 800., 600.]
+        
+        logging.basicConfig(filename="std.log", 
+                            format='%(asctime)s %(message)s', 
+                            filemode='w') 
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.INFO) 
     
     def runFit(self, lineFile, contiWindow, lineWindow, N_fits=1,
                normSwitch=True, dataOut=True, syntheticFits=False, globalLineShift=0,
@@ -241,6 +248,7 @@ class PyQSpecFit():
         
     def Fit(self, dataFile, runName=None):
         self.runName = runName
+        N_failed = 0
         for i in range(self.N_fits):
             if self.runName == None:
                 self.runName = dataFile.split('/')[-1][:-4]
@@ -329,18 +337,26 @@ class PyQSpecFit():
             
             print('Fitting Continuum...')
             print()
-            result = minimize(self.conti_residuals, params, args=[(lams, qso_resid, eflux, self.contiWindow)], method='least_squares', calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
+            
+
+            result = minimize(self.conti_residuals, params, args=[(lams, qso_resid, eflux, self.contiWindow)], method='least_squares', calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8, max_nfev=100*(len(params)+1))
             fitted_params = result.params
             fitted_values = fitted_params.valuesdict()
             fitted_array = np.array(list(fitted_values.values()))
             #report_fit(result)
-            
+        
             print("Best-fit parameters:  ", fitted_array)
             print("Function Evaluations: ", result.nfev)
             print("Reduced Chi^2:        ", result.redchi)
             print()
-
+                
+            if result.redchi < 0:
+                N_failed += 1
+                continue
+                
             self.conti_bestfit = fitted_array
+
+
 
 
 
@@ -387,22 +403,32 @@ class PyQSpecFit():
                 xx, yy, e_yy = np.array(xx)[mask], np.array(yy)[mask], np.array(e_yy)[mask]
                 xx, yy, e_yy = self.sigma_mask_buffer(self.clipBoxWidth, self.clipSigma, xx, yy, e_yy, self.clipBufferWidth)
 
-            result = minimize(self.residual_line, params, args=[(xx, yy, e_yy, self.lineWindow, init_parinfo)], method='least_squares', calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8)
+
+            result = minimize(self.residual_line, params, args=[(xx, yy, e_yy, self.lineWindow, init_parinfo)], method='least_squares', calc_covar=False, xtol=1E-8, ftol=1E-8, gtol=1E-8, max_nfev=100*(len(params)+1))
             fitted_params = result.params
             fitted_values = fitted_params.valuesdict()
             fitted_array = np.array(list(fitted_values.values()))
             #report_fit(result)
-            
+        
             print("Best-fit parameters:  ", fitted_array)
             print("Function Evaluations: ", result.nfev)
             print("Reduced Chi^2:        ", result.redchi)
             print()
 
+            if result.redchi < 0:
+                N_failed += 1
+                continue
+
             line_bestfit = fitted_array
+
+
             wav_axis = np.array([True if 'Wavelength' in i['name'] else False for i in init_parinfo])
             line_bestfit[wav_axis] = np.exp(line_bestfit[wav_axis])
 
             self.out_line_res(lams, line_bestfit, line_names)
+            
+        self.logger.info(runName + ': Number of Successful Runs: %i' %(self.N_fits - N_failed))
+        self.logger.info(runName + ': Number of Failed Runs: %i\n' %(N_failed))
 
     def evalFile(self, file):
         pdata = pd.read_csv(file)

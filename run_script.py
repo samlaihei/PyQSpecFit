@@ -4,7 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sys
 
-file = sys.argv[1]  # 'Run_Files/run_v2.csv'
+# file = sys.argv[1]  # 'Run_Files/run_v2.csv'
+file = 'Run_Files/re_run_v3.csv'
 r_file = pd.read_csv(file)
 
 example = PyQSpecFit.PyQSpecFit()

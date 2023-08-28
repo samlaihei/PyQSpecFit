@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-files = pd.read_csv("Run_Files/run_v2.csv")
+files = pd.read_csv("Run_Files/run_v3.csv")
 #  runName,DataFile,LineFile,redshift,N_Fits,ContiWindows,LineWindows,useBalmer
 lll = len(files)
 print("Decomposing hosts...")
@@ -23,7 +23,8 @@ def subtract_host_6dfgs(name, host, wave_wif, raw_wif, outdir):
     o3_peak_wifes = raw_wif[np.argmax(raw_wif[ind_o3_wifes:ind_o3_wifes + 20]) + ind_o3_wifes]
     o3_peak_6df = flx[np.argmax(flx[ind_o3_6df:ind_o3_6df + 20]) + ind_o3_6df]
 
-    scaled_host = host / o3_peak_wifes * o3_peak_6df
+    scale = o3_peak_6df / o3_peak_wifes
+    scaled_host = host * scale
 
     max_wav = np.nanmin([np.nanmax(wave), np.nanmax(wave_wif)])
     min_wav = np.nanmax([np.nanmin(wave), np.nanmin(wave_wif)])
@@ -49,11 +50,11 @@ def subtract_host_6dfgs(name, host, wave_wif, raw_wif, outdir):
     plt.savefig(f"{fig_dir}/{obj}_6dFGS.pdf")
     plt.close()
 
-    return o3_peak_6df / o3_peak_wifes
+    return scale
 
 
-with open("decomp_params.csv", 'w') as f:
-    f.write('name,z,LogL3000,ebv,M_i,tbb,bbnorm,scal_emline,beslope,fragal,gplind,s0,sa,sb,sc,sd,blur\n')
+with open(fig_dir + "decomp_params.csv", 'w') as f:
+    f.write('name,z,LogL3000,ebv,M_i,tbb,bbnorm,scal_emline,beslope,fragal,gplind,s0,sa,sb,sc,sd,scale\n')
     for ind, row in files.iterrows():
         file = row['DataFile'].split('/')[1]
         obj = file[:-10]
@@ -83,13 +84,13 @@ with open("decomp_params.csv", 'w') as f:
             plt.tight_layout()
             plt.savefig(f"{fig_dir}/{file[:-4]}.pdf")
             plt.close()
-            param_str = f"{file[-4]},{','.join([str(p) for p in params])}\n"
-            f.write(param_str)
+            # param_str = f"{file[-4]},{','.join([str(p) for p in params])}\n"
+            # f.write(param_str)
 
             print(f"\rDecomposing object: {obj}-6dFGS --- {ind + 2}/{lll}", end="")
             scale = subtract_host_6dfgs(obj, host, raw_lams, raw_flux, out_dir)
 
-            param_str = f"{file[-4]},{','.join([str(p) for p in params])},{scale}\n"
+            param_str = f"{file[:-4]},{','.join([str(p) for p in params])},{scale}\n"
             f.write(param_str)
 
 print("\nDone.")

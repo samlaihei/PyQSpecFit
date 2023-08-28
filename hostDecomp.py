@@ -85,8 +85,7 @@ class HostDecomp():
                        {'name': 'sa', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
                        {'name': 'sb', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
                        {'name': 'sc', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
-                       {'name': 'sd', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False},
-                       {'name': 'blur', 'limits': (1E-5, 2), 'init_value': 1, 'fixed': False}]
+                       {'name': 'sd', 'limits': (0., 1.), 'init_value': 0.0, 'fixed': False}]
 
         params = Parameters()
         for pars in tmp_parinfo:
@@ -118,7 +117,7 @@ class HostDecomp():
             gal_tmp = gal_tmp + (pp[10 + ind] * flx_tmp)
 
         # Gaussian broadening
-        gal_tmp = gaussian_filter1d(gal_tmp, pp[-1])
+        # gal_tmp = gaussian_filter1d(gal_tmp, pp[-1])
         gal_tmp = gal_tmp / norm(gal_tmp)  # normalise
 
         model = Quasar_sed(z=pp[0], LogL3000=pp[1], wavlen=xx, ebv=pp[2], M_i=pp[3], tbb=pp[4],

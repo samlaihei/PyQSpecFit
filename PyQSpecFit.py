@@ -1150,7 +1150,7 @@ class PyQSpecFit():
         flux, err = spectres.spectres(grid, lams, flux, spec_errs=err, fill=np.nan, verbose=False)
         return [grid, flux, err]
 
-    def snr_floor_flux_ceiling(self, floor, ceiling, lams, flux, err):
+    def snr_floor_flux_ceiling(self, snr_floor, flux_ceiling, lams, flux, err):
         w1 = lams[(flux / err > snr_floor) & (flux < flux_ceiling)]
         f1 = flux[(flux / err > snr_floor) & (flux < flux_ceiling)]
         e1 = err[(flux / err > snr_floor) & (flux < flux_ceiling)]

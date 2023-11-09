@@ -14,22 +14,22 @@ The key features of this code are:
 
 The preferred citations for this code are the following:
 
-> @ARTICLE{2023MNRAS.526.3230L,
->        author = {{Lai}, Samuel and {Onken}, Christopher A. and {Wolf}, Christian and {Bian}, Fuyan and {Cupani}, Guido and {Lopez}, Sebastian and {D'Odorico}, Valentina},
->         title = "{Virial black hole mass estimates of quasars in the XQ-100 legacy survey}",
->       journal = {\mnras},
->      keywords = {galaxies: active, galaxies: high-redshift, quasars: emission lines, Astrophysics - Astrophysics of Galaxies},
->          year = 2023,
->         month = dec,
->        volume = {526},
->        number = {3},
->         pages = {3230-3247},
->           doi = {10.1093/mnras/stad2994},
-> archivePrefix = {arXiv},
->        eprint = {2310.00271},
->  primaryClass = {astro-ph.GA},
->        adsurl = {https://ui.adsabs.harvard.edu/abs/2023MNRAS.526.3230L},
->       adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+> @ARTICLE{2023MNRAS.526.3230L,\
+>        author = {{Lai}, Samuel and {Onken}, Christopher A. and {Wolf}, Christian and {Bian}, Fuyan and {Cupani}, Guido and {Lopez}, Sebastian and {D'Odorico}, Valentina},\
+>         title = "{Virial black hole mass estimates of quasars in the XQ-100 legacy survey}",\
+>       journal = {\mnras},\
+>      keywords = {galaxies: active, galaxies: high-redshift, quasars: emission lines, Astrophysics - Astrophysics of Galaxies},\
+>          year = 2023,\
+>         month = dec,\
+>        volume = {526},\
+>        number = {3},\
+>         pages = {3230-3247},\
+>           doi = {10.1093/mnras/stad2994},\
+> archivePrefix = {arXiv},\
+>        eprint = {2310.00271},\
+>  primaryClass = {astro-ph.GA},\
+>        adsurl = {https://ui.adsabs.harvard.edu/abs/2023MNRAS.526.3230L},\
+>       adsnote = {Provided by the SAO/NASA Astrophysics Data System}\
 > }
 
 
